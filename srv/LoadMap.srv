@@ -1,3 +1,2 @@
 std_msgs/String map_file_name
-geometry_msgs/Pose pose
 ---

@@ -11,22 +11,16 @@ class NodeParameters
 
     void retrieveParameters(const ros::NodeHandle& nodeHandle);
     void validateParameters() const;
-    void parseComplexParameters();
-    void parseInitialRobotPose();
 
   public:
-    std::string odomFrame;
+    std::string mapFrame;
     std::string robotFrame;
     std::string initialMapFileName;
-    std::string initialRobotPoseString;
-    PM::TransformationParameters initialRobotPose;
     std::string finalMapFileName;
     std::string finalTrajectoryFileName;
-    std::string icpConfig;
     std::string inputFiltersConfig;
     std::string mapPostFiltersConfig;
     std::string mapUpdateCondition;
-    float mapUpdateOverlap;
     float mapUpdateDelay;
     float mapUpdateDistance;
     float mapPublishRate;
