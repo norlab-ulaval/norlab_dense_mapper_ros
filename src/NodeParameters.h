@@ -18,7 +18,9 @@ class NodeParameters
     std::string initialMapFileName;
     std::string finalMapFileName;
     std::string finalTrajectoryFileName;
-    std::string inputFiltersConfig;
+    std::string sensorFiltersConfig;
+    std::string robotFiltersConfig;
+    std::string robotStabilizedFiltersConfig;
     std::string mapPostFiltersConfig;
     std::string mapUpdateCondition;
     float mapUpdateDelay;

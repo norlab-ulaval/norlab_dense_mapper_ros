@@ -101,17 +101,27 @@ void gotInput(const PM::DataPoints& input,
               const std::string& sensorFrame,
               const ros::Time& timeStamp)
 {
-    PM::TransformationParameters sensorToMap =
-        findTransform(sensorFrame, params->mapFrame, timeStamp, input.getHomogeneousDim());
+    PM::TransformationParameters sensorToRobot =
+        findTransform(sensorFrame, params->robotFrame, timeStamp, input.getHomogeneousDim());
+
+    PM::TransformationParameters robotToRobotStabilized =
+        findTransform(params->robotFrame,
+                      params->robotFrame + "_stabilized",
+                      timeStamp,
+                      input.getHomogeneousDim());
+
+    PM::TransformationParameters robotStabilizedToMap = findTransform(
+        params->robotFrame + "_stabilized", params->mapFrame, timeStamp, input.getHomogeneousDim());
 
     denseMapper->processInput(input,
-                              sensorToMap,
+                              sensorToRobot,
+                              robotToRobotStabilized,
+                              robotStabilizedToMap,
                               std::chrono::time_point<std::chrono::steady_clock>(
                                   std::chrono::nanoseconds(timeStamp.toNSec())));
 
-    PM::TransformationParameters robotToSensor =
-        findTransform(params->robotFrame, sensorFrame, timeStamp, input.getHomogeneousDim());
-    PM::TransformationParameters robotToMap = sensorToMap * robotToSensor;
+    PM::TransformationParameters robotToMap =
+        robotStabilizedToMap * robotToRobotStabilized * sensorToRobot;
 
     robotTrajectory->addPoint(robotToMap.topRightCorner(input.getEuclideanDim(), 1));
 
@@ -138,7 +148,10 @@ bool reloadYamlConfigCallback(std_srvs::Empty::Request& request,
                               std_srvs::Empty::Response& response)
 {
     ROS_INFO("Reloading YAML config");
-    denseMapper->loadYamlConfig(params->inputFiltersConfig, params->mapPostFiltersConfig);
+    denseMapper->loadYamlConfig(params->sensorFiltersConfig,
+                                params->robotFiltersConfig,
+                                params->robotStabilizedFiltersConfig,
+                                params->mapPostFiltersConfig);
     return true;
 }
 
@@ -231,7 +244,9 @@ int main(int argc, char** argv)
     transformation = PM::get().TransformationRegistrar.create("RigidTransformation");
 
     denseMapper = std::unique_ptr<norlab_dense_mapper::DenseMapper>(
-        new norlab_dense_mapper::DenseMapper(params->inputFiltersConfig,
+        new norlab_dense_mapper::DenseMapper(params->sensorFiltersConfig,
+                                             params->robotFiltersConfig,
+                                             params->robotStabilizedFiltersConfig,
                                              params->mapPostFiltersConfig,
                                              params->mapUpdateCondition,
                                              params->mapUpdateDelay,

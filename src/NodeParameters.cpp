@@ -16,7 +16,10 @@ void NodeParameters::retrieveParameters(const ros::NodeHandle& nodeHandle)
     nodeHandle.param<std::string>("final_map_file_name", finalMapFileName, "dense_map.vtk");
     nodeHandle.param<std::string>(
         "final_trajectory_file_name", finalTrajectoryFileName, "dense_trajectory.vtk");
-    nodeHandle.param<std::string>("input_filters_config", inputFiltersConfig, "");
+    nodeHandle.param<std::string>("sensor_filters_config", sensorFiltersConfig, "");
+    nodeHandle.param<std::string>("robot_filters_config", robotFiltersConfig, "");
+    nodeHandle.param<std::string>(
+        "robot_stabilized_filters_config", robotStabilizedFiltersConfig, "");
     nodeHandle.param<std::string>("map_post_filters_config", mapPostFiltersConfig, "");
     nodeHandle.param<std::string>("map_update_condition", mapUpdateCondition, "distance");
     nodeHandle.param<float>("map_update_delay", mapUpdateDelay, 1);
@@ -69,12 +72,35 @@ void NodeParameters::validateParameters() const
         trajectoryOfs.close();
     }
 
-    if (!inputFiltersConfig.empty())
+    if (!sensorFiltersConfig.empty())
     {
-        std::ifstream ifs(inputFiltersConfig.c_str());
+        std::ifstream ifs(sensorFiltersConfig.c_str());
         if (!ifs.good())
         {
-            throw std::runtime_error("Invalid input filters config file: " + inputFiltersConfig);
+            throw std::runtime_error("Invalid sensor filters config file: " +
+                                     robotStabilizedFiltersConfig);
+        }
+        ifs.close();
+    }
+
+    if (!robotFiltersConfig.empty())
+    {
+        std::ifstream ifs(robotFiltersConfig.c_str());
+        if (!ifs.good())
+        {
+            throw std::runtime_error("Invalid robot filters config file: " +
+                                     robotStabilizedFiltersConfig);
+        }
+        ifs.close();
+    }
+
+    if (!robotStabilizedFiltersConfig.empty())
+    {
+        std::ifstream ifs(robotStabilizedFiltersConfig.c_str());
+        if (!ifs.good())
+        {
+            throw std::runtime_error("Invalid robot stabilized filters config file: " +
+                                     robotStabilizedFiltersConfig);
         }
         ifs.close();
     }
