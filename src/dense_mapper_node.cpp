@@ -101,17 +101,22 @@ void gotInput(const PM::DataPoints& input,
               const std::string& sensorFrame,
               const ros::Time& timeStamp)
 {
+    std::string baselinkStabilizedPostfix = "_stabilized";
+
     PM::TransformationParameters sensorToRobot =
         findTransform(sensorFrame, params->robotFrame, timeStamp, input.getHomogeneousDim());
 
     PM::TransformationParameters robotToRobotStabilized =
         findTransform(params->robotFrame,
-                      params->robotFrame + "_stabilized",
+                      params->robotFrame + baselinkStabilizedPostfix,
                       timeStamp,
                       input.getHomogeneousDim());
 
-    PM::TransformationParameters robotStabilizedToMap = findTransform(
-        params->robotFrame + "_stabilized", params->mapFrame, timeStamp, input.getHomogeneousDim());
+    PM::TransformationParameters robotStabilizedToMap =
+        findTransform(params->robotFrame + baselinkStabilizedPostfix,
+                      params->mapFrame,
+                      timeStamp,
+                      input.getHomogeneousDim());
 
     denseMapper->processInput(input,
                               sensorToRobot,
@@ -120,8 +125,7 @@ void gotInput(const PM::DataPoints& input,
                               std::chrono::time_point<std::chrono::steady_clock>(
                                   std::chrono::nanoseconds(timeStamp.toNSec())));
 
-    PM::TransformationParameters robotToMap =
-        robotStabilizedToMap * robotToRobotStabilized * sensorToRobot;
+    PM::TransformationParameters robotToMap = denseMapper->getPose();
 
     robotTrajectory->addPoint(robotToMap.topRightCorner(input.getEuclideanDim(), 1));
 
