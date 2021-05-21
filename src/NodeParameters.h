@@ -26,7 +26,6 @@ class NodeParameters
     float mapUpdateDelay;
     float mapUpdateDistance;
     float mapPublishRate;
-    float mapTfPublishRate;
     float maxIdleTime;
     float minDistNewPoint;
     float sensorMaxRange;
