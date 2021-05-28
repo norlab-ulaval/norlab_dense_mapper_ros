@@ -7,7 +7,6 @@
 		<param name="robot_frame" value="base_link" />
 		<param name="initial_map_file_name" value="" />
 		<param name="final_map_file_name" value="dense_map.vtk" />
-		<param name="final_trajectory_file_name" value="dense_trajectory.vtk" />
 		<param name="sensor_filters_config" value="$(find norlab_dense_mapper_ros)/params/sensor_filters_config.yaml" />
 		<param name="robot_filters_config" value="$(find norlab_dense_mapper_ros)/params/robot_filters_config.yaml" />
 		<param name="robot_stabilized_filters_config" value="$(find norlab_dense_mapper_ros)/params/robot_stabilized_filters_config.yaml" />

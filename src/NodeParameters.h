@@ -17,7 +17,6 @@ class NodeParameters
     std::string robotFrame;
     std::string initialMapFileName;
     std::string finalMapFileName;
-    std::string finalTrajectoryFileName;
     std::string sensorFiltersConfig;
     std::string robotFiltersConfig;
     std::string robotStabilizedFiltersConfig;
