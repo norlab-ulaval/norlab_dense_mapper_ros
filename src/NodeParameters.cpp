@@ -14,8 +14,6 @@ void NodeParameters::retrieveParameters(const ros::NodeHandle& nodeHandle)
     nodeHandle.param<std::string>("robot_frame", robotFrame, "base_link");
     nodeHandle.param<std::string>("initial_map_file_name", initialMapFileName, "");
     nodeHandle.param<std::string>("final_map_file_name", finalMapFileName, "dense_map.vtk");
-    nodeHandle.param<std::string>(
-        "final_trajectory_file_name", finalTrajectoryFileName, "dense_trajectory.vtk");
     nodeHandle.param<std::string>("sensor_filters_config", sensorFiltersConfig, "");
     nodeHandle.param<std::string>("robot_filters_config", robotFiltersConfig, "");
     nodeHandle.param<std::string>(
@@ -25,7 +23,6 @@ void NodeParameters::retrieveParameters(const ros::NodeHandle& nodeHandle)
     nodeHandle.param<float>("map_update_delay", mapUpdateDelay, 1);
     nodeHandle.param<float>("map_update_distance", mapUpdateDistance, 0.5);
     nodeHandle.param<float>("map_publish_rate", mapPublishRate, 10);
-    nodeHandle.param<float>("map_tf_publish_rate", mapTfPublishRate, 10);
     nodeHandle.param<float>("max_idle_time", maxIdleTime, 10);
     nodeHandle.param<float>("min_dist_new_point", minDistNewPoint, 0.03);
     nodeHandle.param<float>("sensor_max_range", sensorMaxRange, 80);
@@ -63,13 +60,6 @@ void NodeParameters::validateParameters() const
             throw std::runtime_error("Invalid final map file: " + finalMapFileName);
         }
         mapOfs.close();
-
-        std::ofstream trajectoryOfs(finalTrajectoryFileName.c_str(), std::ios_base::app);
-        if (!trajectoryOfs.good())
-        {
-            throw std::runtime_error("Invalid final trajectory file: " + finalTrajectoryFileName);
-        }
-        trajectoryOfs.close();
     }
 
     if (!sensorFiltersConfig.empty())
@@ -135,12 +125,6 @@ void NodeParameters::validateParameters() const
     if (mapPublishRate <= 0)
     {
         throw std::runtime_error("Invalid map publish rate: " + std::to_string(mapPublishRate));
-    }
-
-    if (mapTfPublishRate <= 0)
-    {
-        throw std::runtime_error("Invalid map tf publish rate: " +
-                                 std::to_string(mapTfPublishRate));
     }
 
     if (!isOnline)

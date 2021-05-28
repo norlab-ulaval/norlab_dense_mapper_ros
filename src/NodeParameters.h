@@ -17,7 +17,6 @@ class NodeParameters
     std::string robotFrame;
     std::string initialMapFileName;
     std::string finalMapFileName;
-    std::string finalTrajectoryFileName;
     std::string sensorFiltersConfig;
     std::string robotFiltersConfig;
     std::string robotStabilizedFiltersConfig;
@@ -26,7 +25,6 @@ class NodeParameters
     float mapUpdateDelay;
     float mapUpdateDistance;
     float mapPublishRate;
-    float mapTfPublishRate;
     float maxIdleTime;
     float minDistNewPoint;
     float sensorMaxRange;

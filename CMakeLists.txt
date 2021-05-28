@@ -63,7 +63,6 @@ find_package(norlab_dense_mapper REQUIRED)
 ## Generate services in the 'srv' folder
 add_service_files(
   FILES
-  SaveTrajectory.srv
   SaveMap.srv
   LoadMap.srv
 )

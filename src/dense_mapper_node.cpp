@@ -6,23 +6,21 @@
 #include <std_srvs/Empty.h>
 #include "norlab_dense_mapper_ros/SaveMap.h"
 #include "norlab_dense_mapper_ros/LoadMap.h"
-#include "norlab_dense_mapper_ros/SaveTrajectory.h"
 #include <geometry_msgs/Pose.h>
 #include <memory>
 #include <mutex>
 #include <thread>
-#include <norlab_dense_mapper/Trajectory.h>
 
 typedef PointMatcher<float> PM;
 
 std::unique_ptr<NodeParameters> params;
 std::shared_ptr<PM::Transformation> transformation;
 std::unique_ptr<norlab_dense_mapper::DenseMapper> denseMapper;
-std::unique_ptr<Trajectory> robotTrajectory;
 ros::Publisher mapPublisher;
 std::unique_ptr<tf2_ros::Buffer> tfBuffer;
 std::chrono::time_point<std::chrono::steady_clock> lastTimeInputWasProcessed;
 std::mutex idleTimeLock;
+std::string baselinkStabilizedPostfix = "_stabilized";
 
 void saveMap(const std::string& mapFileName)
 {
@@ -44,13 +42,6 @@ void loadMap(const std::string& mapFileName)
     denseMapper->setMap(map);
 }
 
-void saveTrajectory(const std::string& trajectoryFileName)
-{
-    ROS_INFO("Saving trajectory to %s", trajectoryFileName.c_str());
-
-    robotTrajectory->save(trajectoryFileName);
-}
-
 void mapperShutdownLoop()
 {
     std::chrono::duration<float> idleTime = std::chrono::duration<float>::zero();
@@ -69,7 +60,6 @@ void mapperShutdownLoop()
         if (idleTime > std::chrono::duration<float>(params->maxIdleTime))
         {
             saveMap(params->finalMapFileName);
-            saveTrajectory(params->finalTrajectoryFileName);
             ROS_INFO("Shutting down ROS");
             ros::shutdown();
         }
@@ -106,12 +96,15 @@ void gotInput(const PM::DataPoints& input,
 
     PM::TransformationParameters robotToRobotStabilized =
         findTransform(params->robotFrame,
-                      params->robotFrame + "_stabilized",
+                      params->robotFrame + baselinkStabilizedPostfix,
                       timeStamp,
                       input.getHomogeneousDim());
 
-    PM::TransformationParameters robotStabilizedToMap = findTransform(
-        params->robotFrame + "_stabilized", params->mapFrame, timeStamp, input.getHomogeneousDim());
+    PM::TransformationParameters robotStabilizedToMap =
+        findTransform(params->robotFrame + baselinkStabilizedPostfix,
+                      params->mapFrame,
+                      timeStamp,
+                      input.getHomogeneousDim());
 
     denseMapper->processInput(input,
                               sensorToRobot,
@@ -119,11 +112,6 @@ void gotInput(const PM::DataPoints& input,
                               robotStabilizedToMap,
                               std::chrono::time_point<std::chrono::steady_clock>(
                                   std::chrono::nanoseconds(timeStamp.toNSec())));
-
-    PM::TransformationParameters robotToMap =
-        robotStabilizedToMap * robotToRobotStabilized * sensorToRobot;
-
-    robotTrajectory->addPoint(robotToMap.topRightCorner(input.getEuclideanDim(), 1));
 
     idleTimeLock.lock();
     lastTimeInputWasProcessed = std::chrono::steady_clock::now();
@@ -176,27 +164,11 @@ bool loadMapCallback(norlab_dense_mapper_ros::LoadMap::Request& request,
     try
     {
         loadMap(request.map_file_name.data);
-        robotTrajectory->clearPoints();
         return true;
     }
     catch (const std::runtime_error& e)
     {
         ROS_ERROR_STREAM("Unable to load: " << e.what());
-        return false;
-    }
-}
-
-bool saveTrajectoryCallback(norlab_dense_mapper_ros::SaveTrajectory::Request& request,
-                            norlab_dense_mapper_ros::SaveTrajectory::Response& response)
-{
-    try
-    {
-        saveTrajectory(request.trajectory_file_name.data);
-        return true;
-    }
-    catch (const std::runtime_error& e)
-    {
-        ROS_ERROR_STREAM("Unable to save: " << e.what());
         return false;
     }
 }
@@ -293,12 +265,10 @@ int main(int argc, char** argv)
     if (params->is3D)
     {
         sub = n.subscribe("points_in", messageQueueSize, pointCloud2Callback);
-        robotTrajectory = std::unique_ptr<Trajectory>(new Trajectory(3));
     }
     else
     {
         sub = n.subscribe("points_in", messageQueueSize, laserScanCallback);
-        robotTrajectory = std::unique_ptr<Trajectory>(new Trajectory(2));
     }
 
     mapPublisher = n.advertise<sensor_msgs::PointCloud2>("dense_map", 2, true);
@@ -307,8 +277,6 @@ int main(int argc, char** argv)
         n.advertiseService("reload_yaml_config", reloadYamlConfigCallback);
     ros::ServiceServer saveMapService = n.advertiseService("save_map", saveMapCallback);
     ros::ServiceServer loadMapService = n.advertiseService("load_map", loadMapCallback);
-    ros::ServiceServer saveTrajectoryService =
-        n.advertiseService("save_trajectory", saveTrajectoryCallback);
     ros::ServiceServer enableMappingService =
         n.advertiseService("enable_mapping", enableMappingCallback);
     ros::ServiceServer disableMappingService =
