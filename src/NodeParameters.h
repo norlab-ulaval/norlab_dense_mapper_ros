@@ -40,8 +40,8 @@ class NodeParameters
     bool is3D;
     bool isDepthCameraEnabled;
     bool isOnline;
-    bool computeProbDynamic;
     bool isMapping;
+    bool computeProbDynamic;
     bool saveMapCellsOnHardDrive;
 
     NodeParameters(ros::NodeHandle privateNodeHandle);

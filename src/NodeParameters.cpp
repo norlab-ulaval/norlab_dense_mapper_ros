@@ -38,8 +38,8 @@ void NodeParameters::retrieveParameters(const ros::NodeHandle& nodeHandle)
     nodeHandle.param<bool>("is_3D", is3D, true);
     nodeHandle.param<bool>("is_depth_camera_enabled", isDepthCameraEnabled, false);
     nodeHandle.param<bool>("is_online", isOnline, true);
-    nodeHandle.param<bool>("compute_prob_dynamic", computeProbDynamic, false);
     nodeHandle.param<bool>("is_mapping", isMapping, true);
+    nodeHandle.param<bool>("compute_prob_dynamic", computeProbDynamic, false);
     nodeHandle.param<bool>("save_map_cells_on_hard_drive", saveMapCellsOnHardDrive, true);
 }
 
@@ -81,8 +81,7 @@ void NodeParameters::validateParameters() const
         std::ifstream ifs(sensorFiltersConfig.c_str());
         if (!ifs.good())
         {
-            throw std::runtime_error("Invalid sensor filters config file: " +
-                                     robotStabilizedFiltersConfig);
+            throw std::runtime_error("Invalid sensor filters config file: " + sensorFiltersConfig);
         }
         ifs.close();
     }
@@ -92,8 +91,7 @@ void NodeParameters::validateParameters() const
         std::ifstream ifs(robotFiltersConfig.c_str());
         if (!ifs.good())
         {
-            throw std::runtime_error("Invalid robot filters config file: " +
-                                     robotStabilizedFiltersConfig);
+            throw std::runtime_error("Invalid robot filters config file: " + robotFiltersConfig);
         }
         ifs.close();
     }

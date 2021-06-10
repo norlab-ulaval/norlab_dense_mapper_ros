@@ -217,6 +217,7 @@ int main(int argc, char** argv)
 
     params = std::unique_ptr<NodeParameters>(new NodeParameters(pn));
     transformation = PM::get().TransformationRegistrar.create("RigidTransformation");
+    mapPublisher = n.advertise<sensor_msgs::PointCloud2>("dense_map", 2, true);
 
     denseMapper = std::unique_ptr<norlab_dense_mapper::DenseMapper>(
         new norlab_dense_mapper::DenseMapper(params->depthCameraFiltersConfig,
@@ -240,8 +241,8 @@ int main(int argc, char** argv)
                                              params->is3D,
                                              params->isDepthCameraEnabled,
                                              params->isOnline,
-                                             params->computeProbDynamic,
                                              params->isMapping,
+                                             params->computeProbDynamic,
                                              params->saveMapCellsOnHardDrive));
 
     if (!params->initialMapFileName.empty())
@@ -283,8 +284,6 @@ int main(int argc, char** argv)
         lidarSubscriber =
             n.subscribe("lslidar_point_cloud_deskewed", messageQueueSize, laserScanCallback);
     }
-
-    mapPublisher = n.advertise<sensor_msgs::PointCloud2>("dense_map", 2, true);
 
     ros::ServiceServer reloadYamlConfigService =
         n.advertiseService("reload_yaml_config", reloadYamlConfigCallback);
