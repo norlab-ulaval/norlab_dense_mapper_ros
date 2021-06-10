@@ -1,0 +1,6 @@
+- DistanceLimitDataPointsFilter:
+      dist: 3
+      removeInside: 0
+
+- MaxPointCountDataPointsFilter:
+      maxCount: 5000

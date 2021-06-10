@@ -106,7 +106,8 @@ void gotInput(const PM::DataPoints& input,
                       timeStamp,
                       input.getHomogeneousDim());
 
-    denseMapper->processInput(input,
+    denseMapper->processInput(sensorFrame,
+                              input,
                               sensorToRobot,
                               robotToRobotStabilized,
                               robotStabilizedToMap,
@@ -135,8 +136,10 @@ void laserScanCallback(const sensor_msgs::LaserScan& scanMsgIn)
 bool reloadYamlConfigCallback(std_srvs::Empty::Request& request,
                               std_srvs::Empty::Response& response)
 {
-    ROS_INFO("Reloading YAML config");
-    denseMapper->loadYamlConfig(params->sensorFiltersConfig,
+    ROS_INFO_STREAM("Reloading YAML config");
+
+    denseMapper->loadYamlConfig(params->depthCameraFiltersConfig,
+                                params->sensorFiltersConfig,
                                 params->robotFiltersConfig,
                                 params->robotStabilizedFiltersConfig,
                                 params->mapPostFiltersConfig);
@@ -216,11 +219,13 @@ int main(int argc, char** argv)
     transformation = PM::get().TransformationRegistrar.create("RigidTransformation");
 
     denseMapper = std::unique_ptr<norlab_dense_mapper::DenseMapper>(
-        new norlab_dense_mapper::DenseMapper(params->sensorFiltersConfig,
+        new norlab_dense_mapper::DenseMapper(params->depthCameraFiltersConfig,
+                                             params->sensorFiltersConfig,
                                              params->robotFiltersConfig,
                                              params->robotStabilizedFiltersConfig,
                                              params->mapPostFiltersConfig,
                                              params->mapUpdateCondition,
+                                             params->depthCameraFrame,
                                              params->mapUpdateDelay,
                                              params->mapUpdateDistance,
                                              params->minDistNewPoint,
@@ -233,6 +238,7 @@ int main(int argc, char** argv)
                                              params->alpha,
                                              params->beta,
                                              params->is3D,
+                                             params->isDepthCameraEnabled,
                                              params->isOnline,
                                              params->computeProbDynamic,
                                              params->isMapping,
@@ -260,15 +266,22 @@ int main(int argc, char** argv)
     }
 
     tf2_ros::TransformListener tfListener(*tfBuffer);
-    ros::Subscriber sub;
+    ros::Subscriber lidarSubscriber;
+    ros::Subscriber depthCameraSubscriber;
 
     if (params->is3D)
     {
-        sub = n.subscribe("points_in", messageQueueSize, pointCloud2Callback);
+        lidarSubscriber =
+            n.subscribe("lslidar_point_cloud_deskewed", messageQueueSize, pointCloud2Callback);
+
+        if (params->isDepthCameraEnabled)
+            depthCameraSubscriber = n.subscribe(
+                "realsense/depth/color/points_slowed", messageQueueSize, pointCloud2Callback);
     }
     else
     {
-        sub = n.subscribe("points_in", messageQueueSize, laserScanCallback);
+        lidarSubscriber =
+            n.subscribe("lslidar_point_cloud_deskewed", messageQueueSize, laserScanCallback);
     }
 
     mapPublisher = n.advertise<sensor_msgs::PointCloud2>("dense_map", 2, true);

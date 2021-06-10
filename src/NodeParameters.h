@@ -15,8 +15,10 @@ class NodeParameters
   public:
     std::string mapFrame;
     std::string robotFrame;
+    std::string depthCameraFrame;
     std::string initialMapFileName;
     std::string finalMapFileName;
+    std::string depthCameraFiltersConfig;
     std::string sensorFiltersConfig;
     std::string robotFiltersConfig;
     std::string robotStabilizedFiltersConfig;
@@ -36,6 +38,7 @@ class NodeParameters
     float alpha;
     float beta;
     bool is3D;
+    bool isDepthCameraEnabled;
     bool isOnline;
     bool computeProbDynamic;
     bool isMapping;

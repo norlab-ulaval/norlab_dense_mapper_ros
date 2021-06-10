@@ -12,8 +12,10 @@ void NodeParameters::retrieveParameters(const ros::NodeHandle& nodeHandle)
 {
     nodeHandle.param<std::string>("map_frame", mapFrame, "map");
     nodeHandle.param<std::string>("robot_frame", robotFrame, "base_link");
+    nodeHandle.param<std::string>("depth_camera_frame", depthCameraFrame, "");
     nodeHandle.param<std::string>("initial_map_file_name", initialMapFileName, "");
     nodeHandle.param<std::string>("final_map_file_name", finalMapFileName, "dense_map.vtk");
+    nodeHandle.param<std::string>("depth_camera_filters_config", depthCameraFiltersConfig, "");
     nodeHandle.param<std::string>("sensor_filters_config", sensorFiltersConfig, "");
     nodeHandle.param<std::string>("robot_filters_config", robotFiltersConfig, "");
     nodeHandle.param<std::string>(
@@ -34,6 +36,7 @@ void NodeParameters::retrieveParameters(const ros::NodeHandle& nodeHandle)
     nodeHandle.param<float>("alpha", alpha, 0.8);
     nodeHandle.param<float>("beta", beta, 0.99);
     nodeHandle.param<bool>("is_3D", is3D, true);
+    nodeHandle.param<bool>("is_depth_camera_enabled", isDepthCameraEnabled, false);
     nodeHandle.param<bool>("is_online", isOnline, true);
     nodeHandle.param<bool>("compute_prob_dynamic", computeProbDynamic, false);
     nodeHandle.param<bool>("is_mapping", isMapping, true);
@@ -60,6 +63,17 @@ void NodeParameters::validateParameters() const
             throw std::runtime_error("Invalid final map file: " + finalMapFileName);
         }
         mapOfs.close();
+    }
+
+    if (!depthCameraFiltersConfig.empty())
+    {
+        std::ifstream ifs(depthCameraFiltersConfig.c_str());
+        if (!ifs.good())
+        {
+            throw std::runtime_error("Invalid depth camera filters config file: " +
+                                     depthCameraFiltersConfig);
+        }
+        ifs.close();
     }
 
     if (!sensorFiltersConfig.empty())
