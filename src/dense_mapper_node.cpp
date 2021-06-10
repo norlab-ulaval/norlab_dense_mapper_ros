@@ -1,15 +1,23 @@
 #include "NodeParameters.h"
-#include <ros/ros.h>
-#include <tf2_ros/transform_broadcaster.h>
-#include <tf2_ros/transform_listener.h>
-#include <pointmatcher_ros/PointMatcher_ROS.h>
-#include <std_srvs/Empty.h>
-#include "norlab_dense_mapper_ros/SaveMap.h"
-#include "norlab_dense_mapper_ros/LoadMap.h"
-#include <geometry_msgs/Pose.h>
+
 #include <memory>
 #include <mutex>
 #include <thread>
+
+#include <geometry_msgs/Pose.h>
+#include <geometry_msgs/Quaternion.h>
+#include <geometry_msgs/Vector3.h>
+#include <pointmatcher_ros/PointMatcher_ROS.h>
+#include <ros/ros.h>
+#include <std_srvs/Empty.h>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2/LinearMath/Vector3.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2_ros/transform_broadcaster.h>
+#include <tf2_ros/transform_listener.h>
+
+#include "norlab_dense_mapper_ros/LoadMap.h"
+#include "norlab_dense_mapper_ros/SaveMap.h"
 
 typedef PointMatcher<float> PM;
 
@@ -20,6 +28,8 @@ ros::Publisher mapPublisher;
 std::unique_ptr<tf2_ros::Buffer> tfBuffer;
 std::chrono::time_point<std::chrono::steady_clock> lastTimeInputWasProcessed;
 std::mutex idleTimeLock;
+std::mutex icpOdomLock;
+std::list<nav_msgs::Odometry> icpOdoms;
 std::string baselinkStabilizedPostfix = "_stabilized";
 
 void saveMap(const std::string& mapFileName)
@@ -87,6 +97,61 @@ PM::TransformationParameters findTransform(const std::string& sourceFrame,
     return PointMatcher_ROS::rosTfToPointMatcherTransformation<float>(tf, transformDimension);
 }
 
+PM::TransformationParameters getRobotToMapTransform(const ros::Time& timeStamp,
+                                                    const int& transformDimension)
+{
+    nav_msgs::Odometry odom1;
+    nav_msgs::Odometry odom2;
+
+    while (ros::ok())
+    {
+        icpOdomLock.lock();
+        while (icpOdoms.size() > 1 && (++icpOdoms.begin())->header.stamp <= timeStamp)
+        {
+            icpOdoms.pop_front();
+        }
+
+        int icpOdomsSize = icpOdoms.size();
+
+        if (icpOdomsSize > 1)
+        {
+            odom1 = icpOdoms.front();
+            odom2 = *(++icpOdoms.begin());
+        }
+        icpOdomLock.unlock();
+
+        if (icpOdomsSize > 1)
+            break;
+        else
+            std::this_thread::sleep_for(std::chrono::duration<float>(0.1));
+    }
+
+    ros::Time t1 = odom1.header.stamp;
+    ros::Time t2 = odom2.header.stamp;
+
+    geometry_msgs::Pose pose1 = odom1.pose.pose;
+    geometry_msgs::Pose pose2 = odom2.pose.pose;
+
+    tf2::Vector3 p1(pose1.position.x, pose1.position.y, pose1.position.z);
+    tf2::Vector3 p2(pose2.position.x, pose2.position.y, pose2.position.z);
+
+    tf2::Quaternion q1;
+    tf2::fromMsg(pose1.orientation, q1);
+    tf2::Quaternion q2;
+    tf2::fromMsg(pose2.orientation, q2);
+
+    double t = (timeStamp - t1).toSec() / (t2 - t1).toSec();
+
+    geometry_msgs::Vector3 position(tf2::toMsg(p1.lerp(p2, t)));
+    geometry_msgs::Quaternion orientation(tf2::toMsg(q1.slerp(q2, t)));
+
+    geometry_msgs::TransformStamped tf;
+    tf.transform.translation = position;
+    tf.transform.rotation = orientation;
+
+    return PointMatcher_ROS::rosTfToPointMatcherTransformation<float>(tf, transformDimension);
+}
+
 void gotInput(const PM::DataPoints& input,
               const std::string& sensorFrame,
               const ros::Time& timeStamp)
@@ -100,11 +165,11 @@ void gotInput(const PM::DataPoints& input,
                       timeStamp,
                       input.getHomogeneousDim());
 
+    PM::TransformationParameters robotToMap =
+        getRobotToMapTransform(timeStamp, input.getHomogeneousDim());
+
     PM::TransformationParameters robotStabilizedToMap =
-        findTransform(params->robotFrame + baselinkStabilizedPostfix,
-                      params->mapFrame,
-                      timeStamp,
-                      input.getHomogeneousDim());
+        (robotToRobotStabilized * robotToMap.inverse()).inverse();
 
     denseMapper->processInput(sensorFrame,
                               input,
@@ -131,6 +196,13 @@ void laserScanCallback(const sensor_msgs::LaserScan& scanMsgIn)
     gotInput(PointMatcher_ROS::rosMsgToPointMatcherCloud<float>(scanMsgIn),
              scanMsgIn.header.frame_id,
              scanMsgIn.header.stamp);
+}
+
+void icpOdomCallback(const nav_msgs::Odometry& msg)
+{
+    icpOdomLock.lock();
+    icpOdoms.emplace_back(msg);
+    icpOdomLock.unlock();
 }
 
 bool reloadYamlConfigCallback(std_srvs::Empty::Request& request,
@@ -267,6 +339,7 @@ int main(int argc, char** argv)
     }
 
     tf2_ros::TransformListener tfListener(*tfBuffer);
+    ros::Subscriber icpOdomSubscriber(n.subscribe("icp_odom", 10, icpOdomCallback));
     ros::Subscriber lidarSubscriber;
     ros::Subscriber depthCameraSubscriber;
 
@@ -296,7 +369,8 @@ int main(int argc, char** argv)
 
     std::thread mapPublisherThread = std::thread(mapPublisherLoop);
 
-    ros::spin();
+    ros::MultiThreadedSpinner spinner;
+    spinner.spin();
 
     mapPublisherThread.join();
 
