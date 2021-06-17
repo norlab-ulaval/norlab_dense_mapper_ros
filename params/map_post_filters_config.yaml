@@ -6,7 +6,11 @@
       maxCount: 50000
 
 - SurfaceNormalDataPointsFilter:
-      knn: 5
+      knn: 15
+      keepEigenValues: 1
+      keepEigenVectors: 1
+
+- OrientNormalsDataPointsFilter
 
 - CutAtDescriptorThresholdDataPointsFilter:
       descName: probabilityDynamic
