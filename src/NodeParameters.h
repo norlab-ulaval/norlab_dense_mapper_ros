@@ -19,7 +19,7 @@ class NodeParameters
     std::string initialMapFileName;
     std::string finalMapFileName;
     std::string depthCameraFiltersConfig;
-    std::string sensorFiltersConfig;
+    std::string lidarFiltersConfig;
     std::string robotFiltersConfig;
     std::string robotStabilizedFiltersConfig;
     std::string mapPostFiltersConfig;

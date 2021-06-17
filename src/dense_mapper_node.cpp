@@ -211,7 +211,7 @@ bool reloadYamlConfigCallback(std_srvs::Empty::Request& request,
     ROS_INFO_STREAM("Reloading YAML config");
 
     denseMapper->loadYamlConfig(params->depthCameraFiltersConfig,
-                                params->sensorFiltersConfig,
+                                params->lidarFiltersConfig,
                                 params->robotFiltersConfig,
                                 params->robotStabilizedFiltersConfig,
                                 params->mapPostFiltersConfig);
@@ -345,7 +345,7 @@ int main(int argc, char** argv)
 
     denseMapper = std::unique_ptr<norlab_dense_mapper::DenseMapper>(
         new norlab_dense_mapper::DenseMapper(params->depthCameraFiltersConfig,
-                                             params->sensorFiltersConfig,
+                                             params->lidarFiltersConfig,
                                              params->robotFiltersConfig,
                                              params->robotStabilizedFiltersConfig,
                                              params->mapPostFiltersConfig,

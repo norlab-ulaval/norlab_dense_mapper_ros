@@ -16,7 +16,7 @@ void NodeParameters::retrieveParameters(const ros::NodeHandle& nodeHandle)
     nodeHandle.param<std::string>("initial_map_file_name", initialMapFileName, "");
     nodeHandle.param<std::string>("final_map_file_name", finalMapFileName, "dense_map.vtk");
     nodeHandle.param<std::string>("depth_camera_filters_config", depthCameraFiltersConfig, "");
-    nodeHandle.param<std::string>("sensor_filters_config", sensorFiltersConfig, "");
+    nodeHandle.param<std::string>("lidar_filters_config", lidarFiltersConfig, "");
     nodeHandle.param<std::string>("robot_filters_config", robotFiltersConfig, "");
     nodeHandle.param<std::string>(
         "robot_stabilized_filters_config", robotStabilizedFiltersConfig, "");
@@ -77,12 +77,12 @@ void NodeParameters::validateParameters() const
         ifs.close();
     }
 
-    if (!sensorFiltersConfig.empty())
+    if (!lidarFiltersConfig.empty())
     {
-        std::ifstream ifs(sensorFiltersConfig.c_str());
+        std::ifstream ifs(lidarFiltersConfig.c_str());
         if (!ifs.good())
         {
-            throw std::runtime_error("Invalid sensor filters config file: " + sensorFiltersConfig);
+            throw std::runtime_error("Invalid lidar filters config file: " + lidarFiltersConfig);
         }
         ifs.close();
     }

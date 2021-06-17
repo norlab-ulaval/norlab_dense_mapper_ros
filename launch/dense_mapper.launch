@@ -11,7 +11,7 @@
 		<param name="initial_map_file_name" value="" />
 		<param name="final_map_file_name" value="dense_map.vtk" />
 		<param name="depth_camera_filters_config" value="$(find norlab_dense_mapper_ros)/params/depth_camera_filters_config.yaml" />
-		<param name="sensor_filters_config" value="$(find norlab_dense_mapper_ros)/params/lidar_filters_config.yaml" />
+		<param name="lidar_filters_config" value="$(find norlab_dense_mapper_ros)/params/lidar_filters_config.yaml" />
 		<param name="robot_filters_config" value="$(find norlab_dense_mapper_ros)/params/robot_filters_config.yaml" />
 		<param name="robot_stabilized_filters_config" value="$(find norlab_dense_mapper_ros)/params/robot_stabilized_filters_config.yaml" />
 		<param name="map_post_filters_config" value="$(find norlab_dense_mapper_ros)/params/map_post_filters_config.yaml" />
