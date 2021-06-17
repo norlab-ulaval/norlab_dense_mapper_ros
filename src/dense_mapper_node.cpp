@@ -46,9 +46,8 @@ void loadMap(const std::string& mapFileName)
     int euclideanDim = params->is3D ? 3 : 2;
 
     if (map.getEuclideanDim() != euclideanDim)
-    {
         throw std::runtime_error("Invalid map dimension");
-    }
+
     denseMapper->setMap(map);
 }
 
@@ -61,9 +60,7 @@ void mapperShutdownLoop()
         idleTimeLock.lock();
 
         if (lastTimeInputWasProcessed.time_since_epoch().count())
-        {
             idleTime = std::chrono::steady_clock::now() - lastTimeInputWasProcessed;
-        }
 
         idleTimeLock.unlock();
 
@@ -340,23 +337,14 @@ int main(int argc, char** argv)
 
     tf2_ros::TransformListener tfListener(*tfBuffer);
     ros::Subscriber icpOdomSubscriber(n.subscribe("icp_odom", 10, icpOdomCallback));
-    ros::Subscriber lidarSubscriber;
-    ros::Subscriber depthCameraSubscriber;
+    ros::Subscriber sensorsSubscriber;
 
     if (params->is3D)
-    {
-        lidarSubscriber =
+        sensorsSubscriber =
             n.subscribe("lslidar_point_cloud_deskewed", messageQueueSize, pointCloud2Callback);
-
-        if (params->isDepthCameraEnabled)
-            depthCameraSubscriber = n.subscribe(
-                "realsense/depth/color/points_slowed", messageQueueSize, pointCloud2Callback);
-    }
     else
-    {
-        lidarSubscriber =
+        sensorsSubscriber =
             n.subscribe("lslidar_point_cloud_deskewed", messageQueueSize, laserScanCallback);
-    }
 
     ros::ServiceServer reloadYamlConfigService =
         n.advertiseService("reload_yaml_config", reloadYamlConfigCallback);
