@@ -33,6 +33,7 @@
 		<param name="is_depth_camera_enabled" value="true" />
 		<param name="is_online" value="true" />
 		<param name="is_mapping" value="true" />
+		<param name="is_markers_enabled" value="true" />
 		<param name="compute_prob_dynamic" value="true" />
 	</node>
 

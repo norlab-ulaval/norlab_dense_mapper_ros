@@ -8,7 +8,9 @@ Panels:
         - /Status1
         - /PointCloud21
         - /TF1/Frames1
-      Splitter Ratio: 0.7058823704719543
+        - /MarkerArray1
+        - /MarkerArray1/Namespaces1
+      Splitter Ratio: 0.44289693236351013
     Tree Height: 1804
   - Class: rviz/Selection
     Name: Selection
@@ -42,7 +44,7 @@ Visualization Manager:
   Class: ""
   Displays:
     - Alpha: 0.75
-      Autocompute Intensity Bounds: true
+      Autocompute Intensity Bounds: false
       Autocompute Value Bounds:
         Max Value: 3.3931875228881836
         Min Value: 0.33531904220581055
@@ -56,9 +58,9 @@ Visualization Manager:
       Enabled: true
       Invert Rainbow: false
       Max Color: 255; 255; 255
-      Max Intensity: 0.9999995827674866
+      Max Intensity: 1
       Min Color: 0; 0; 0
-      Min Intensity: -0.9999996423721313
+      Min Intensity: -1
       Name: PointCloud2
       Position Transformer: XYZ
       Queue Size: 1
@@ -110,21 +112,9 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: false
-        base_footprint:
-          Value: false
         base_link:
           Value: true
         base_link_stabilized:
-          Value: false
-        front_bumper_link:
-          Value: false
-        front_left_wheel_link:
-          Value: false
-        front_right_wheel_link:
-          Value: false
-        imu_link:
-          Value: false
-        inertial_link:
           Value: false
         lslidarc16:
           Value: true
@@ -142,22 +132,6 @@ Visualization Manager:
           Value: false
         realsense_link:
           Value: true
-        rear_bumper_link:
-          Value: false
-        rear_left_wheel_link:
-          Value: false
-        rear_right_wheel_link:
-          Value: false
-        top_chassis_link:
-          Value: false
-        top_plate_front_link:
-          Value: false
-        top_plate_link:
-          Value: false
-        top_plate_rear_link:
-          Value: false
-        user_rail_link:
-          Value: false
       Marker Scale: 1
       Name: TF
       Show Arrows: true
@@ -167,18 +141,6 @@ Visualization Manager:
         map:
           odom:
             base_link:
-              base_footprint:
-                {}
-              front_bumper_link:
-                {}
-              front_left_wheel_link:
-                {}
-              front_right_wheel_link:
-                {}
-              imu_link:
-                {}
-              inertial_link:
-                {}
               lslidarc16:
                 {}
               realsense_link:
@@ -188,21 +150,6 @@ Visualization Manager:
                 realsense_depth_frame:
                   realsense_depth_optical_frame:
                     {}
-              rear_bumper_link:
-                {}
-              rear_left_wheel_link:
-                {}
-              rear_right_wheel_link:
-                {}
-              top_chassis_link:
-                {}
-              top_plate_link:
-                top_plate_front_link:
-                  {}
-                top_plate_rear_link:
-                  {}
-              user_rail_link:
-                {}
             base_link_stabilized:
               {}
       Update Interval: 0
@@ -237,6 +184,14 @@ Visualization Manager:
       Use Fixed Frame: true
       Use rainbow: true
       Value: false
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /dense_map_markers
+      Name: MarkerArray
+      Namespaces:
+        dense_mapper: true
+      Queue Size: 100000
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -265,7 +220,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 14.345759391784668
+      Distance: 13.463974952697754
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -280,18 +235,18 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.5653976202011108
+      Pitch: 0.9303979873657227
       Target Frame: base_link
       Value: Orbit (rviz)
-      Yaw: 3.2153964042663574
+      Yaw: 0.11903844028711319
     Saved: ~
 Window Geometry:
   Displays:
-    collapsed: true
+    collapsed: false
   Height: 2096
-  Hide Left Dock: true
+  Hide Left Dock: false
   Hide Right Dock: true
-  QMainWindow State: 000000ff00000000fd0000000300000000000001bd00000797fc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073000000003d00000797000000c900fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c0000026100000001000001c200000797fc0200000004fb0000000a00560069006500770073000000003d00000797000000a400fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000003d00000360000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b20000000000000000000000030000078000000039fc0100000002fb0000000800540069006d0065010000000000000780000002eb00fffffffb0000000800540069006d00650100000000000004500000000000000000000007800000079700000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd00000003000000000000016900000797fc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003d00000797000000c900fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c0000026100000001000001c200000797fc0200000004fb0000000a00560069006500770073000000003d00000797000000a400fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000003d00000360000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000300000f0000000039fc0100000002fb0000000800540069006d0065010000000000000f00000002eb00fffffffb0000000800540069006d0065010000000000000450000000000000000000000d910000079700000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:
@@ -300,6 +255,6 @@ Window Geometry:
     collapsed: false
   Views:
     collapsed: false
-  Width: 1920
+  Width: 3840
   X: 0
   Y: 27
