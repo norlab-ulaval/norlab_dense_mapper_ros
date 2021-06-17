@@ -1,13 +1,17 @@
 <launch>
 	<param name="/use_sim_time" value="true"/>
+	<arg name="bagfile" default=""/>
+	<arg name="rate" default="1"/>
+	<arg name="start" default="0"/>
 
 	<node pkg="norlab_dense_mapper_ros" type="dense_mapper_node" name="dense_mapper_node">
-		<remap from="points_in" to="lslidar_point_cloud_deskewed" />
 		<param name="map_frame" value="map" />
 		<param name="robot_frame" value="base_link" />
+		<param name="depth_camera_frame" value="realsense_depth_optical_frame"/>
 		<param name="initial_map_file_name" value="" />
 		<param name="final_map_file_name" value="dense_map.vtk" />
-		<param name="sensor_filters_config" value="$(find norlab_dense_mapper_ros)/params/sensor_filters_config.yaml" />
+		<param name="depth_camera_filters_config" value="$(find norlab_dense_mapper_ros)/params/depth_camera_filters_config.yaml" />
+		<param name="lidar_filters_config" value="$(find norlab_dense_mapper_ros)/params/lidar_filters_config.yaml" />
 		<param name="robot_filters_config" value="$(find norlab_dense_mapper_ros)/params/robot_filters_config.yaml" />
 		<param name="robot_stabilized_filters_config" value="$(find norlab_dense_mapper_ros)/params/robot_stabilized_filters_config.yaml" />
 		<param name="map_post_filters_config" value="$(find norlab_dense_mapper_ros)/params/map_post_filters_config.yaml" />
@@ -20,14 +24,23 @@
 		<param name="sensor_max_range" value="5" />
 		<param name="prior_dynamic" value="0.6" />
 		<param name="threshold_dynamic" value="0.9" />
-		<param name="beam_half_angle" value="0.01" />
+		<param name="beam_half_angle" value="0.017453292" />
 		<param name="epsilon_a" value="0.01" />
 		<param name="epsilon_d" value="0.01" />
 		<param name="alpha" value="0.8" />
 		<param name="beta" value="0.99" />
 		<param name="is_3D" value="true" />
+		<param name="is_depth_camera_enabled" value="true" />
 		<param name="is_online" value="true" />
-		<param name="compute_prob_dynamic" value="false" />
 		<param name="is_mapping" value="true" />
+		<param name="is_markers_enabled" value="true" />
+		<param name="compute_prob_dynamic" value="true" />
 	</node>
+
+	<node pkg="rviz" type="rviz" name="rviz" args="-d $(find norlab_dense_mapper_ros)/rviz/config.rviz"/>
+	<node pkg="rosbag" type="play" name="play" output="screen" args="$(arg bagfile) --clock -r $(arg rate) -s $(arg start)"/>
+
+	<!-- The realsense publish at a rate of 30 Hz, so this node slows it down to 10 Hz by dropping 2 frame out of 3. -->
+	<node pkg="topic_tools" type="drop" name="realsense_slower_node" args="/realsense/depth/color/points 2 3 /lslidar_point_cloud_deskewed" />
+
 </launch>

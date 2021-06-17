@@ -15,9 +15,11 @@ class NodeParameters
   public:
     std::string mapFrame;
     std::string robotFrame;
+    std::string depthCameraFrame;
     std::string initialMapFileName;
     std::string finalMapFileName;
-    std::string sensorFiltersConfig;
+    std::string depthCameraFiltersConfig;
+    std::string lidarFiltersConfig;
     std::string robotFiltersConfig;
     std::string robotStabilizedFiltersConfig;
     std::string mapPostFiltersConfig;
@@ -36,9 +38,11 @@ class NodeParameters
     float alpha;
     float beta;
     bool is3D;
+    bool isDepthCameraEnabled;
     bool isOnline;
-    bool computeProbDynamic;
     bool isMapping;
+    bool isMarkersEnabled;
+    bool computeProbDynamic;
     bool saveMapCellsOnHardDrive;
 
     NodeParameters(ros::NodeHandle privateNodeHandle);

@@ -12,9 +12,11 @@ void NodeParameters::retrieveParameters(const ros::NodeHandle& nodeHandle)
 {
     nodeHandle.param<std::string>("map_frame", mapFrame, "map");
     nodeHandle.param<std::string>("robot_frame", robotFrame, "base_link");
+    nodeHandle.param<std::string>("depth_camera_frame", depthCameraFrame, "");
     nodeHandle.param<std::string>("initial_map_file_name", initialMapFileName, "");
     nodeHandle.param<std::string>("final_map_file_name", finalMapFileName, "dense_map.vtk");
-    nodeHandle.param<std::string>("sensor_filters_config", sensorFiltersConfig, "");
+    nodeHandle.param<std::string>("depth_camera_filters_config", depthCameraFiltersConfig, "");
+    nodeHandle.param<std::string>("lidar_filters_config", lidarFiltersConfig, "");
     nodeHandle.param<std::string>("robot_filters_config", robotFiltersConfig, "");
     nodeHandle.param<std::string>(
         "robot_stabilized_filters_config", robotStabilizedFiltersConfig, "");
@@ -34,9 +36,11 @@ void NodeParameters::retrieveParameters(const ros::NodeHandle& nodeHandle)
     nodeHandle.param<float>("alpha", alpha, 0.8);
     nodeHandle.param<float>("beta", beta, 0.99);
     nodeHandle.param<bool>("is_3D", is3D, true);
+    nodeHandle.param<bool>("is_depth_camera_enabled", isDepthCameraEnabled, false);
     nodeHandle.param<bool>("is_online", isOnline, true);
-    nodeHandle.param<bool>("compute_prob_dynamic", computeProbDynamic, false);
     nodeHandle.param<bool>("is_mapping", isMapping, true);
+    nodeHandle.param<bool>("is_markers_enabled", isMarkersEnabled, false);
+    nodeHandle.param<bool>("compute_prob_dynamic", computeProbDynamic, false);
     nodeHandle.param<bool>("save_map_cells_on_hard_drive", saveMapCellsOnHardDrive, true);
 }
 
@@ -62,13 +66,23 @@ void NodeParameters::validateParameters() const
         mapOfs.close();
     }
 
-    if (!sensorFiltersConfig.empty())
+    if (!depthCameraFiltersConfig.empty())
     {
-        std::ifstream ifs(sensorFiltersConfig.c_str());
+        std::ifstream ifs(depthCameraFiltersConfig.c_str());
         if (!ifs.good())
         {
-            throw std::runtime_error("Invalid sensor filters config file: " +
-                                     robotStabilizedFiltersConfig);
+            throw std::runtime_error("Invalid depth camera filters config file: " +
+                                     depthCameraFiltersConfig);
+        }
+        ifs.close();
+    }
+
+    if (!lidarFiltersConfig.empty())
+    {
+        std::ifstream ifs(lidarFiltersConfig.c_str());
+        if (!ifs.good())
+        {
+            throw std::runtime_error("Invalid lidar filters config file: " + lidarFiltersConfig);
         }
         ifs.close();
     }
@@ -78,8 +92,7 @@ void NodeParameters::validateParameters() const
         std::ifstream ifs(robotFiltersConfig.c_str());
         if (!ifs.good())
         {
-            throw std::runtime_error("Invalid robot filters config file: " +
-                                     robotStabilizedFiltersConfig);
+            throw std::runtime_error("Invalid robot filters config file: " + robotFiltersConfig);
         }
         ifs.close();
     }

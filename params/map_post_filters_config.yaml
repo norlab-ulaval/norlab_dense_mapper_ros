@@ -1,3 +1,18 @@
 - DistanceLimitDataPointsFilter:
       dist: 5
       removeInside: 0
+
+- MaxPointCountDataPointsFilter:
+      maxCount: 50000
+
+- SurfaceNormalDataPointsFilter:
+      knn: 15
+      keepEigenValues: 1
+      keepEigenVectors: 1
+
+- OrientNormalsDataPointsFilter
+
+- CutAtDescriptorThresholdDataPointsFilter:
+      descName: probabilityDynamic
+      useLargerThan: 1
+      threshold: 0.8

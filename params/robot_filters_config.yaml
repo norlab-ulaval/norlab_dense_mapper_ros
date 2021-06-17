@@ -1,8 +1,18 @@
+# Marmotte dimensions
 - BoundingBoxDataPointsFilter:
-      xMin: -0.695
-      xMax: 0.695
-      yMin: -0.535
-      yMax: 0.535
-      zMin: -0.345
-      zMax: 0.735
+      xMin: -0.48
+      xMax: 0.48
+      yMin: -0.32
+      yMax: 0.32
+      zMin: -0.2
+      zMax: 0.4
       removeInside: 1
+# Husky dimensions
+# - BoundingBoxDataPointsFilter:
+#       xMin: -0.695
+#       xMax: 0.695
+#       yMin: -0.535
+#       yMax: 0.535
+#       zMin: -0.345
+#       zMax: 0.735
+#       removeInside: 1
