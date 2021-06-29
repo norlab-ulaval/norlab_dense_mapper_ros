@@ -41,7 +41,7 @@ class NodeParameters
     bool isDepthCameraEnabled;
     bool isOnline;
     bool isMapping;
-    bool isMarkersEnabled;
+    bool isCovarianceMarkersEnabled;
     bool computeProbDynamic;
     bool saveMapCellsOnHardDrive;
 

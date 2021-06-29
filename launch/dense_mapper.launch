@@ -33,7 +33,7 @@
 		<param name="is_depth_camera_enabled" value="true" />
 		<param name="is_online" value="true" />
 		<param name="is_mapping" value="true" />
-		<param name="is_markers_enabled" value="true" />
+		<param name="is_covariance_markers_enabled" value="true" />
 		<param name="compute_prob_dynamic" value="true" />
 	</node>
 
@@ -42,5 +42,4 @@
 
 	<!-- The realsense publish at a rate of 30 Hz, so this node slows it down to 10 Hz by dropping 2 frame out of 3. -->
 	<node pkg="topic_tools" type="drop" name="realsense_slower_node" args="/realsense/depth/color/points 2 3 /lslidar_point_cloud_deskewed" />
-
 </launch>

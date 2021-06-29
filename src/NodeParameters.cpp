@@ -39,7 +39,7 @@ void NodeParameters::retrieveParameters(const ros::NodeHandle& nodeHandle)
     nodeHandle.param<bool>("is_depth_camera_enabled", isDepthCameraEnabled, false);
     nodeHandle.param<bool>("is_online", isOnline, true);
     nodeHandle.param<bool>("is_mapping", isMapping, true);
-    nodeHandle.param<bool>("is_markers_enabled", isMarkersEnabled, false);
+    nodeHandle.param<bool>("is_covariance_markers_enabled", isCovarianceMarkersEnabled, false);
     nodeHandle.param<bool>("compute_prob_dynamic", computeProbDynamic, false);
     nodeHandle.param<bool>("save_map_cells_on_hard_drive", saveMapCellsOnHardDrive, true);
 }

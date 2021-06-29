@@ -26,8 +26,8 @@ typedef PointMatcher<float> PM;
 std::unique_ptr<NodeParameters> params;
 std::shared_ptr<PM::Transformation> transformation;
 std::unique_ptr<norlab_dense_mapper::DenseMapper> denseMapper;
+ros::Publisher covarianceMarkersPublisher;
 ros::Publisher mapPublisher;
-ros::Publisher markerPublisher;
 std::unique_ptr<tf2_ros::Buffer> tfBuffer;
 std::chrono::time_point<std::chrono::steady_clock> lastTimeInputWasProcessed;
 std::mutex idleTimeLock;
@@ -274,12 +274,9 @@ void mapPublisherLoop()
         {
             sensor_msgs::PointCloud2 dense_map = PointMatcher_ROS::pointMatcherCloudToRosMsg<float>(
                 newMap, params->mapFrame, ros::Time::now());
-            mapPublisher.publish(dense_map);
 
-            if (params->isMarkersEnabled)
+            if (params->isCovarianceMarkersEnabled)
             {
-                PM::TransformationParameters sensorToMap =
-                    denseMapper->getPose().topLeftCorner(3, 3);
                 PM::Matrix eigenValues = newMap.getDescriptorCopyByName("eigValues");
                 PM::Matrix eigenVectors = newMap.getDescriptorCopyByName("eigVectors");
 
@@ -287,21 +284,27 @@ void mapPublisherLoop()
 
                 for (size_t i = 0; i < newMap.getNbPoints(); ++i)
                 {
-                    Eigen::Block<Eigen::MatrixXf> a = eigenVectors.block(0, i, 3, 1);
-                    Eigen::Block<Eigen::MatrixXf> b = eigenVectors.block(3, i, 3, 1);
-                    Eigen::Block<Eigen::MatrixXf> c = eigenVectors.block(6, i, 3, 1);
+                    Eigen::Vector3f a = eigenVectors.block<3, 1>(0, i);
+                    Eigen::Vector3f b = eigenVectors.block<3, 1>(3, i);
+                    Eigen::Vector3f c = eigenVectors.block<3, 1>(6, i);
 
                     Eigen::Matrix3f R;
                     R << a, b, c;
 
-                    Eigen::Matrix3f RinSensorFrame = sensorToMap * R;
-                    Eigen::Quaternionf q(RinSensorFrame);
+
+                    if (R.determinant() < 0)
+                    {
+                        R.col(0).swap(R.col(1));
+                        eigenValues.row(0).swap(eigenValues.row(1));
+                    }
+
+                    Eigen::Quaternionf q(R);
                     q.normalize();
 
                     visualization_msgs::Marker marker;
                     marker.header.frame_id = params->mapFrame;
                     marker.header.stamp = dense_map.header.stamp;
-                    marker.ns = "dense_mapper";
+                    marker.ns = "covariances";
                     marker.id = i;
                     marker.type = visualization_msgs::Marker::SPHERE;
                     marker.action = visualization_msgs::Marker::ADD;
@@ -312,19 +315,19 @@ void mapPublisherLoop()
                     marker.pose.orientation.y = q.y();
                     marker.pose.orientation.z = q.z();
                     marker.pose.orientation.w = q.w();
-                    marker.scale.x = std::sqrt(eigenValues(0, i));
-                    marker.scale.y = std::sqrt(eigenValues(1, i));
-                    marker.scale.z = std::sqrt(eigenValues(2, i));
+                    marker.scale.x = 2 * std::sqrt(eigenValues(0, i));
+                    marker.scale.y = 2 * std::sqrt(eigenValues(1, i));
+                    marker.scale.z = 2 * std::sqrt(eigenValues(2, i));
                     marker.color.r = 1.0f;
                     marker.color.g = 1.0f;
                     marker.color.b = 1.0f;
                     marker.color.a = 1.0f;
                     marker.lifetime = ros::Duration(1);
                     markers.markers.emplace_back(marker);
-                    typeid(marker).name();
                 }
-                markerPublisher.publish(markers);
+                covarianceMarkersPublisher.publish(markers);
             }
+            mapPublisher.publish(dense_map);
         }
         publishRate.sleep();
     }
@@ -339,9 +342,10 @@ int main(int argc, char** argv)
     params = std::unique_ptr<NodeParameters>(new NodeParameters(pn));
     transformation = PM::get().TransformationRegistrar.create("RigidTransformation");
     mapPublisher = n.advertise<sensor_msgs::PointCloud2>("dense_map", 2, true);
-    if (params->isMarkersEnabled)
-        markerPublisher =
-            n.advertise<visualization_msgs::MarkerArray>("dense_map_markers", 1, true);
+
+    if (params->isCovarianceMarkersEnabled)
+        covarianceMarkersPublisher =
+            n.advertise<visualization_msgs::MarkerArray>("covariance_markers", 10, true);
 
     denseMapper = std::unique_ptr<norlab_dense_mapper::DenseMapper>(
         new norlab_dense_mapper::DenseMapper(params->depthCameraFiltersConfig,
