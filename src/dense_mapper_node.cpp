@@ -27,7 +27,7 @@ std::unique_ptr<NodeParameters> params;
 std::shared_ptr<PM::Transformation> transformation;
 std::unique_ptr<norlab_dense_mapper::DenseMapper> denseMapper;
 ros::Publisher covarianceMarkersPublisher;
-ros::Publisher mapPublisher;
+ros::Publisher denseMapPublisher;
 std::unique_ptr<tf2_ros::Buffer> tfBuffer;
 std::chrono::time_point<std::chrono::steady_clock> lastTimeInputWasProcessed;
 std::mutex idleTimeLock;
@@ -262,7 +262,7 @@ bool disableMappingCallback(std_srvs::Empty::Request& request, std_srvs::Empty::
     return true;
 }
 
-void mapPublisherLoop()
+void denseMapPublisherLoop()
 {
     ros::Rate publishRate(params->mapPublishRate);
 
@@ -290,7 +290,6 @@ void mapPublisherLoop()
 
                     Eigen::Matrix3f R;
                     R << a, b, c;
-
 
                     if (R.determinant() < 0)
                     {
@@ -341,7 +340,7 @@ int main(int argc, char** argv)
 
     params = std::unique_ptr<NodeParameters>(new NodeParameters(pn));
     transformation = PM::get().TransformationRegistrar.create("RigidTransformation");
-    mapPublisher = n.advertise<sensor_msgs::PointCloud2>("dense_map", 2, true);
+    denseMapPublisher = n.advertise<sensor_msgs::PointCloud2>("dense_map", 10, true);
 
     if (params->isCovarianceMarkersEnabled)
         covarianceMarkersPublisher =
@@ -414,12 +413,12 @@ int main(int argc, char** argv)
     ros::ServiceServer disableMappingService =
         n.advertiseService("disable_mapping", disableMappingCallback);
 
-    std::thread mapPublisherThread = std::thread(mapPublisherLoop);
+    std::thread denseMapPublisherThread = std::thread(denseMapPublisherLoop);
 
     ros::MultiThreadedSpinner spinner;
     spinner.spin();
 
-    mapPublisherThread.join();
+    denseMapPublisherThread.join();
 
     if (!params->isOnline)
     {
