@@ -34,7 +34,7 @@ A bridge between norlab_dense_mapper and ROS.
 |     is_depth_camera_enabled     |                        true when a depth camera is used, false otherwise.                         |     {true, false}     |      false      |
 |            is_online            |                       true when online mapping is wanted, false otherwise.                        |     {true, false}     |      true       |
 |           is_mapping            |             true when map updates are wanted, false when only localization is wanted.             |     {true, false}     |      true       |
-|       is_markers_enabled        |                true when the points covariance markers is wanted, false otherwise.                |     {true, false}     |      false      |
+|  is_covariance_markers_enabled  |                true when the points covariance markers is wanted, false otherwise.                |     {true, false}     |      false      |
 |      compute_prob_dynamic       |     true when computation of probability of points being dynamic is wanted, false otherwise.      |     {true, false}     |      false      |
 |  save_map_cells_on_hard_drive   | true when map cell storage on hard drive is wanted, false when map cell storage in RAM is wanted. |     {true, false}     |      true       |
 
