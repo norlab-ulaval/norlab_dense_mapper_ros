@@ -405,9 +405,7 @@ int main(int argc, char** argv)
                                              params->saveMapCellsOnHardDrive));
 
     if (!params->initialMapFileName.empty())
-    {
         loadMap(params->initialMapFileName);
-    }
 
     std::thread mapperShutdownThread;
     int messageQueueSize;
@@ -415,7 +413,7 @@ int main(int argc, char** argv)
     if (params->isOnline)
     {
         tfBuffer = std::unique_ptr<tf2_ros::Buffer>(new tf2_ros::Buffer);
-        messageQueueSize = 1;
+        messageQueueSize = 10;
     }
     else
     {
@@ -455,9 +453,7 @@ int main(int argc, char** argv)
     denseMapPublisherThread.join();
 
     if (!params->isOnline)
-    {
         mapperShutdownThread.join();
-    }
 
     return 0;
 }
