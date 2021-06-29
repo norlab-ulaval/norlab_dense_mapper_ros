@@ -320,16 +320,48 @@ void denseMapPublisherLoop()
                     marker.color.r = 1.0f;
                     marker.color.g = 1.0f;
                     marker.color.b = 1.0f;
-                    marker.color.a = 1.0f;
+                    marker.color.a = 0.75f;
                     marker.lifetime = ros::Duration(1);
                     markers.markers.emplace_back(marker);
                 }
                 covarianceMarkersPublisher.publish(markers);
             }
-            mapPublisher.publish(dense_map);
+            denseMapPublisher.publish(dense_map);
         }
         publishRate.sleep();
     }
+}
+
+void generatePointCloud()
+{
+    unsigned int numberOfPoints = 1000;
+    float halfWidth = 1.0;
+    float halfLength = 0.5;
+    float height = 0.1;
+
+    PM::Matrix randomFeatures(PM::Matrix::Random(4, numberOfPoints));
+    PM::DataPoints::Labels featuresLabels;
+    featuresLabels.emplace_back(PM::DataPoints::Label("x", 1));
+    featuresLabels.emplace_back(PM::DataPoints::Label("y", 1));
+    featuresLabels.emplace_back(PM::DataPoints::Label("z", 1));
+    featuresLabels.emplace_back(PM::DataPoints::Label("pad", 1));
+    PM::DataPoints pointCloud(randomFeatures, featuresLabels);
+
+    for (size_t i = 0; i < numberOfPoints; ++i)
+    {
+        pointCloud.features(0, i) *= halfWidth;
+        pointCloud.features(1, i) *= halfLength;
+        pointCloud.features(2, i) = (pointCloud.features(2, i) * 0.015) - height;
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    denseMapper->processInput(params->robotFrame + baselinkStabilizedPostfix,
+                              pointCloud,
+                              PM::Matrix::Identity(4, 4),
+                              PM::Matrix::Identity(4, 4),
+                              PM::Matrix::Identity(4, 4),
+                              std::chrono::time_point<std::chrono::steady_clock>(
+                                  std::chrono::nanoseconds(ros::Time::now().toNSec())));
 }
 
 int main(int argc, char** argv)
@@ -413,11 +445,13 @@ int main(int argc, char** argv)
     ros::ServiceServer disableMappingService =
         n.advertiseService("disable_mapping", disableMappingCallback);
 
+    std::thread pointcloudthread = std::thread(generatePointCloud);
     std::thread denseMapPublisherThread = std::thread(denseMapPublisherLoop);
 
     ros::MultiThreadedSpinner spinner;
     spinner.spin();
 
+    pointcloudthread.join();
     denseMapPublisherThread.join();
 
     if (!params->isOnline)
