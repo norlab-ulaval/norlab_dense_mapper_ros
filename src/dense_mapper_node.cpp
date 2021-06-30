@@ -354,7 +354,6 @@ void generatePointCloud()
         pointCloud.features(2, i) = (pointCloud.features(2, i) * 0.015) - height;
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     denseMapper->processInput(params->robotFrame + baselinkStabilizedPostfix,
                               pointCloud,
                               PM::Matrix::Identity(4, 4),
@@ -443,13 +442,11 @@ int main(int argc, char** argv)
     ros::ServiceServer disableMappingService =
         n.advertiseService("disable_mapping", disableMappingCallback);
 
-    std::thread pointcloudthread = std::thread(generatePointCloud);
-    std::thread denseMapPublisherThread = std::thread(denseMapPublisherLoop);
+    generatePointCloud();
 
+    std::thread denseMapPublisherThread = std::thread(denseMapPublisherLoop);
     ros::MultiThreadedSpinner spinner;
     spinner.spin();
-
-    pointcloudthread.join();
     denseMapPublisherThread.join();
 
     if (!params->isOnline)
