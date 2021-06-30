@@ -341,10 +341,10 @@ void generatePointCloud()
 
     PM::Matrix randomFeatures(PM::Matrix::Random(4, numberOfPoints));
     PM::DataPoints::Labels featuresLabels;
-    featuresLabels.emplace_back(PM::DataPoints::Label("x", 1));
-    featuresLabels.emplace_back(PM::DataPoints::Label("y", 1));
-    featuresLabels.emplace_back(PM::DataPoints::Label("z", 1));
-    featuresLabels.emplace_back(PM::DataPoints::Label("pad", 1));
+    featuresLabels.emplace_back("x", 1);
+    featuresLabels.emplace_back("y", 1);
+    featuresLabels.emplace_back("z", 1);
+    featuresLabels.emplace_back("pad", 1);
     PM::DataPoints pointCloud(randomFeatures, featuresLabels);
 
     for (size_t i = 0; i < numberOfPoints; ++i)
