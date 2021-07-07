@@ -36,7 +36,7 @@ A bridge between norlab_dense_mapper and ROS.
 |           is_mapping            |             true when map updates are wanted, false when only localization is wanted.             |     {true, false}     |      true       |
 |  is_covariance_markers_enabled  |                true when the points covariance markers is wanted, false otherwise.                |     {true, false}     |      false      |
 |      compute_prob_dynamic       |     true when computation of probability of points being dynamic is wanted, false otherwise.      |     {true, false}     |      false      |
-|  save_map_cells_on_hard_drive   | true when map cell storage on hard drive is wanted, false when map cell storage in RAM is wanted. |     {true, false}     |      true       |
+|  save_map_cells_on_hard_drive   | true when map cell storage on hard drive is wanted, false when map cell storage in RAM is wanted. |     {true, false}     |      false      |
 
 ## Node Topics
 
