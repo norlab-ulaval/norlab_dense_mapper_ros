@@ -262,6 +262,66 @@ bool disableMappingCallback(std_srvs::Empty::Request& request, std_srvs::Empty::
     return true;
 }
 
+void publishCovariancesMarkers(const PM::DataPoints map, const ros::Time stamp)
+{
+    PM::Vector eigenValues = map.getDescriptorViewByName("eigValues").unaryExpr([](float element) {
+        return std::fabs(element) < 1e-6 ? 0.0001f : element;
+    });
+    PM::Matrix eigenVectors = map.getDescriptorViewByName("eigVectors");
+
+    visualization_msgs::MarkerArray markers;
+
+    for (size_t i = 0; i < map.getNbPoints(); ++i)
+    {
+        Eigen::Vector3f a = eigenVectors.block<3, 1>(0, i);
+        Eigen::Vector3f b = eigenVectors.block<3, 1>(3, i);
+        Eigen::Vector3f c = eigenVectors.block<3, 1>(6, i);
+
+        Eigen::Matrix3f R;
+        R << a, b, c;
+
+        if (eigenValues(0, i) < 0)
+            eigenValues(0, i) *= -1;
+
+        if (eigenValues(1, i) < 0)
+            eigenValues(1, i) *= -1;
+
+        if (eigenValues(2, i) < 0)
+            eigenValues(2, i) *= -1;
+
+        if (R.determinant() < 0)
+            R.col(0) *= -1;
+
+        Eigen::Quaternionf q(R);
+        q.normalize();
+
+        visualization_msgs::Marker marker;
+        marker.header.frame_id = params->mapFrame;
+        marker.header.stamp = stamp;
+        marker.ns = "covariances";
+        marker.id = i;
+        marker.type = visualization_msgs::Marker::CUBE;
+        marker.action = visualization_msgs::Marker::ADD;
+        marker.pose.position.x = map.features(0, i);
+        marker.pose.position.y = map.features(1, i);
+        marker.pose.position.z = map.features(2, i);
+        marker.pose.orientation.x = q.x();
+        marker.pose.orientation.y = q.y();
+        marker.pose.orientation.z = q.z();
+        marker.pose.orientation.w = q.w();
+        marker.scale.x = 2 * std::sqrt(eigenValues(0, i));
+        marker.scale.y = 2 * std::sqrt(eigenValues(1, i));
+        marker.scale.z = 2 * std::sqrt(eigenValues(2, i));
+        marker.color.r = 1.0f;
+        marker.color.g = 1.0f;
+        marker.color.b = 1.0f;
+        marker.color.a = 0.75f;
+        marker.lifetime = ros::Duration(2);
+        markers.markers.emplace_back(marker);
+    }
+    covarianceMarkersPublisher.publish(markers);
+}
+
 void denseMapPublisherLoop()
 {
     ros::Rate publishRate(params->mapPublishRate);
@@ -275,58 +335,10 @@ void denseMapPublisherLoop()
             sensor_msgs::PointCloud2 dense_map = PointMatcher_ROS::pointMatcherCloudToRosMsg<float>(
                 newMap, params->mapFrame, ros::Time::now());
 
-            if (params->isCovarianceMarkersEnabled)
-            {
-                PM::Matrix eigenValues = newMap.getDescriptorCopyByName("eigValues");
-                PM::Matrix eigenVectors = newMap.getDescriptorCopyByName("eigVectors");
-
-                visualization_msgs::MarkerArray markers;
-
-                for (size_t i = 0; i < newMap.getNbPoints(); ++i)
-                {
-                    Eigen::Vector3f a = eigenVectors.block<3, 1>(0, i);
-                    Eigen::Vector3f b = eigenVectors.block<3, 1>(3, i);
-                    Eigen::Vector3f c = eigenVectors.block<3, 1>(6, i);
-
-                    Eigen::Matrix3f R;
-                    R << a, b, c;
-
-                    if (R.determinant() < 0)
-                    {
-                        R.col(0).swap(R.col(1));
-                        eigenValues.row(0).swap(eigenValues.row(1));
-                    }
-
-                    Eigen::Quaternionf q(R);
-                    q.normalize();
-
-                    visualization_msgs::Marker marker;
-                    marker.header.frame_id = params->mapFrame;
-                    marker.header.stamp = dense_map.header.stamp;
-                    marker.ns = "covariances";
-                    marker.id = i;
-                    marker.type = visualization_msgs::Marker::SPHERE;
-                    marker.action = visualization_msgs::Marker::ADD;
-                    marker.pose.position.x = newMap.features(0, i);
-                    marker.pose.position.y = newMap.features(1, i);
-                    marker.pose.position.z = newMap.features(2, i);
-                    marker.pose.orientation.x = q.x();
-                    marker.pose.orientation.y = q.y();
-                    marker.pose.orientation.z = q.z();
-                    marker.pose.orientation.w = q.w();
-                    marker.scale.x = 2 * std::sqrt(eigenValues(0, i));
-                    marker.scale.y = 2 * std::sqrt(eigenValues(1, i));
-                    marker.scale.z = 2 * std::sqrt(eigenValues(2, i));
-                    marker.color.r = 1.0f;
-                    marker.color.g = 1.0f;
-                    marker.color.b = 1.0f;
-                    marker.color.a = 0.75f;
-                    marker.lifetime = ros::Duration(1);
-                    markers.markers.emplace_back(marker);
-                }
-                covarianceMarkersPublisher.publish(markers);
-            }
             denseMapPublisher.publish(dense_map);
+
+            if (params->isCovarianceMarkersEnabled)
+                publishCovariancesMarkers(newMap, dense_map.header.stamp);
         }
         publishRate.sleep();
     }
