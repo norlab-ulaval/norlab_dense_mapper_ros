@@ -1,4 +1,4 @@
 - MaxPointCountDataPointsFilter:
-      maxCount: 2500
+      maxCount: 1000
 
 - ObservationDirectionDataPointsFilter
