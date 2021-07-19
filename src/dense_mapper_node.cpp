@@ -20,12 +20,14 @@
 
 #include "norlab_dense_mapper_ros/LoadMap.h"
 #include "norlab_dense_mapper_ros/SaveMap.h"
+#include "norlab_dense_mapper_ros/SurfaceArray.h"
 
 typedef PointMatcher<float> PM;
 
 std::unique_ptr<NodeParameters> params;
 std::shared_ptr<PM::Transformation> transformation;
 std::unique_ptr<norlab_dense_mapper::DenseMapper> denseMapper;
+ros::Publisher surfacePublisher;
 ros::Publisher covarianceMarkersPublisher;
 ros::Publisher denseMapPublisher;
 std::unique_ptr<tf2_ros::Buffer> tfBuffer;
@@ -275,57 +277,113 @@ void denseMapPublisherLoop()
             sensor_msgs::PointCloud2 dense_map = PointMatcher_ROS::pointMatcherCloudToRosMsg<float>(
                 newMap, params->mapFrame, ros::Time::now());
 
-            if (params->isCovarianceMarkersEnabled)
-            {
-                PM::Matrix eigenValues = newMap.getDescriptorCopyByName("eigValues");
-                PM::Matrix eigenVectors = newMap.getDescriptorCopyByName("eigVectors");
+			PM::Matrix eigenValues = newMap.getDescriptorCopyByName("eigValues").unaryExpr([](float element)
+																						   { return element < 1e-6 ? 0.001f : element; });
+			PM::Matrix eigenVectors = newMap.getDescriptorCopyByName("eigVectors");
+			PM::Matrix nbPoints = newMap.getDescriptorCopyByName("nbPoints");
 
-                visualization_msgs::MarkerArray markers;
+			norlab_dense_mapper_ros::SurfaceArray surfaceArray;
+			visualization_msgs::MarkerArray markers;
+			for (size_t i = 0; i < newMap.getNbPoints(); ++i)
+			{
+				const auto& a = eigenVectors.block<3, 1>(0, i);
+				const auto& b = eigenVectors.block<3, 1>(3, i);
+				const auto& c = eigenVectors.block<3, 1>(6, i);
 
-                for (size_t i = 0; i < newMap.getNbPoints(); ++i)
-                {
-                    Eigen::Vector3f a = eigenVectors.block<3, 1>(0, i);
-                    Eigen::Vector3f b = eigenVectors.block<3, 1>(3, i);
-                    Eigen::Vector3f c = eigenVectors.block<3, 1>(6, i);
+				// only one surface per prism (the top one)
+				Eigen::Vector3f topEigenVector, edge1, edge2;
+				if(std::fabs(a(2)) > std::fabs(b(2)))
+				{
+					if(std::fabs(a(2)) > std::fabs(c(2)))
+					{
+						topEigenVector = a * std::sqrt(3 * eigenValues(0, i));
+						edge1 = b * std::sqrt(3 * eigenValues(1, i));
+						edge2 = c * std::sqrt(3 * eigenValues(2, i));
+					}
+					else
+					{
+						edge1 = a * std::sqrt(3 * eigenValues(0, i));
+						edge2 = b * std::sqrt(3 * eigenValues(1, i));
+						topEigenVector = c * std::sqrt(3 * eigenValues(2, i));
+					}
+				}
+				else
+				{
+					if(std::fabs(b(2)) > std::fabs(c(2)))
+					{
+						edge1 = a * std::sqrt(3 * eigenValues(0, i));
+						topEigenVector = b * std::sqrt(3 * eigenValues(1, i));
+						edge2 = c * std::sqrt(3 * eigenValues(2, i));
+					}
+					else
+					{
+						edge1 = a * std::sqrt(3 * eigenValues(0, i));
+						edge2 = b * std::sqrt(3 * eigenValues(1, i));
+						topEigenVector = c * std::sqrt(3 * eigenValues(2, i));
+					}
+				}
+				if(topEigenVector(2) < 0)
+				{
+					topEigenVector *= -1;
+				}
+				Eigen::Vector3f center = newMap.features.col(i).topRows(3) + topEigenVector;
 
-                    Eigen::Matrix3f R;
-                    R << a, b, c;
+				norlab_dense_mapper_ros::Surface surface;
+				surface.center.x = center(0);
+				surface.center.y = center(1);
+				surface.center.z = center(2);
+				surface.edge_1.x = edge1(0);
+				surface.edge_1.y = edge1(1);
+				surface.edge_1.z = edge1(2);
+				surface.edge_2.x = edge2(0);
+				surface.edge_2.y = edge2(1);
+				surface.edge_2.z = edge2(2);
+				surfaceArray.surfaces.emplace_back(surface);
 
-                    if (R.determinant() < 0)
-                    {
-                        R.col(0).swap(R.col(1));
-                        eigenValues.row(0).swap(eigenValues.row(1));
-                    }
+				if (params->isCovarianceMarkersEnabled)
+				{
+					Eigen::Matrix3f R;
+					R << a, b, c;
 
-                    Eigen::Quaternionf q(R);
-                    q.normalize();
+					if (R.determinant() < 0)
+					{
+						R.col(0).swap(R.col(1));
+						eigenValues.row(0).swap(eigenValues.row(1));
+					}
 
-                    visualization_msgs::Marker marker;
-                    marker.header.frame_id = params->mapFrame;
-                    marker.header.stamp = dense_map.header.stamp;
-                    marker.ns = "covariances";
-                    marker.id = i;
-                    marker.type = visualization_msgs::Marker::SPHERE;
-                    marker.action = visualization_msgs::Marker::ADD;
-                    marker.pose.position.x = newMap.features(0, i);
-                    marker.pose.position.y = newMap.features(1, i);
-                    marker.pose.position.z = newMap.features(2, i);
-                    marker.pose.orientation.x = q.x();
-                    marker.pose.orientation.y = q.y();
-                    marker.pose.orientation.z = q.z();
-                    marker.pose.orientation.w = q.w();
-                    marker.scale.x = 2 * std::sqrt(eigenValues(0, i));
-                    marker.scale.y = 2 * std::sqrt(eigenValues(1, i));
-                    marker.scale.z = 2 * std::sqrt(eigenValues(2, i));
-                    marker.color.r = 1.0f;
-                    marker.color.g = 1.0f;
-                    marker.color.b = 1.0f;
-                    marker.color.a = 0.75f;
-                    marker.lifetime = ros::Duration(1);
-                    markers.markers.emplace_back(marker);
-                }
-                covarianceMarkersPublisher.publish(markers);
-            }
+					Eigen::Quaternionf q(R);
+					q.normalize();
+
+					visualization_msgs::Marker marker;
+					marker.header.frame_id = params->mapFrame;
+					marker.header.stamp = dense_map.header.stamp;
+					marker.ns = "covariances";
+					marker.id = i;
+					marker.type = visualization_msgs::Marker::CUBE;
+					marker.action = visualization_msgs::Marker::ADD;
+					marker.pose.position.x = newMap.features(0, i);
+					marker.pose.position.y = newMap.features(1, i);
+					marker.pose.position.z = newMap.features(2, i);
+					marker.pose.orientation.x = q.x();
+					marker.pose.orientation.y = q.y();
+					marker.pose.orientation.z = q.z();
+					marker.pose.orientation.w = q.w();
+					marker.scale.x = 2 * std::sqrt(3 * eigenValues(0, i));
+					marker.scale.y = 2 * std::sqrt(3 * eigenValues(1, i));
+					marker.scale.z = 2 * std::sqrt(3 * eigenValues(2, i));
+					marker.color.r = (float)std::min(nbPoints(0, i)/500.0, 1.0);
+					marker.color.g = 0.0f;
+					marker.color.b = 1.0f - (float)std::min(nbPoints(0, i)/500.0, 1.0);
+					marker.color.a = 0.75f;
+					markers.markers.emplace_back(marker);
+				}
+			}
+
+			surfacePublisher.publish(surfaceArray);
+
+			if(params->isCovarianceMarkersEnabled)
+				covarianceMarkersPublisher.publish(markers);
+
             denseMapPublisher.publish(dense_map);
         }
         publishRate.sleep();
@@ -334,25 +392,24 @@ void denseMapPublisherLoop()
 
 void generatePointCloud()
 {
-    unsigned int numberOfPoints = 1000;
+    unsigned int numberOfPoints = 10000;
     float halfWidth = 1.0;
-    float halfLength = 0.5;
-    float height = 0.1;
+    float halfLength = 1.5;
+    float halfThickness = 0.015;
+    float height = -0.11;
 
     PM::Matrix randomFeatures(PM::Matrix::Random(4, numberOfPoints));
+    randomFeatures.row(0) *= halfLength;
+    randomFeatures.row(1) *= halfWidth;
+    randomFeatures.row(2) = (randomFeatures.row(2) * halfThickness).array() + height;
+    randomFeatures.row(3) = PM::Matrix::Ones(1, numberOfPoints);
+
     PM::DataPoints::Labels featuresLabels;
     featuresLabels.emplace_back("x", 1);
     featuresLabels.emplace_back("y", 1);
     featuresLabels.emplace_back("z", 1);
     featuresLabels.emplace_back("pad", 1);
     PM::DataPoints pointCloud(randomFeatures, featuresLabels);
-
-    for (size_t i = 0; i < numberOfPoints; ++i)
-    {
-        pointCloud.features(0, i) *= halfWidth;
-        pointCloud.features(1, i) *= halfLength;
-        pointCloud.features(2, i) = (pointCloud.features(2, i) * 0.015) - height;
-    }
 
     denseMapper->processInput(params->robotFrame + baselinkStabilizedPostfix,
                               pointCloud,
@@ -372,6 +429,8 @@ int main(int argc, char** argv)
     params = std::unique_ptr<NodeParameters>(new NodeParameters(pn));
     transformation = PM::get().TransformationRegistrar.create("RigidTransformation");
     denseMapPublisher = n.advertise<sensor_msgs::PointCloud2>("dense_map", 10, true);
+
+	surfacePublisher = n.advertise<norlab_dense_mapper_ros::SurfaceArray>("surfaces", 1, true);
 
     if (params->isCovarianceMarkersEnabled)
         covarianceMarkersPublisher =
