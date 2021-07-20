@@ -42,6 +42,7 @@ class NodeParameters
     bool isOnline;
     bool isMapping;
     bool isCovarianceMarkersEnabled;
+    bool isSurfacePublisherEnabled;
     bool computeProbDynamic;
     bool saveMapCellsOnHardDrive;
 

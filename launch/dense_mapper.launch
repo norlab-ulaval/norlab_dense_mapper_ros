@@ -34,6 +34,7 @@
 		<param name="is_online" value="true" />
 		<param name="is_mapping" value="true" />
 		<param name="is_covariance_markers_enabled" value="false" />
+		<param name="is_surface_publisher_enabled" value="false" />
 		<param name="compute_prob_dynamic" value="true" />
 	</node>
 

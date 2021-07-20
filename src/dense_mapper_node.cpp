@@ -290,55 +290,58 @@ void denseMapPublisherLoop()
 				const auto& b = eigenVectors.block<3, 1>(3, i);
 				const auto& c = eigenVectors.block<3, 1>(6, i);
 
-				// only one surface per prism (the top one)
-				Eigen::Vector3f topEigenVector, edge1, edge2;
-				if(std::fabs(a(2)) > std::fabs(b(2)))
+				if(params->isSurfacePublisherEnabled)
 				{
-					if(std::fabs(a(2)) > std::fabs(c(2)))
+					// only one surface per prism (the top one)
+					Eigen::Vector3f topEigenVector, edge1, edge2;
+					if(std::fabs(a(2)) > std::fabs(b(2)))
 					{
-						topEigenVector = a * std::sqrt(3 * eigenValues(0, i));
-						edge1 = b * std::sqrt(3 * eigenValues(1, i));
-						edge2 = c * std::sqrt(3 * eigenValues(2, i));
+						if(std::fabs(a(2)) > std::fabs(c(2)))
+						{
+							topEigenVector = a * std::sqrt(3 * eigenValues(0, i));
+							edge1 = b * std::sqrt(3 * eigenValues(1, i));
+							edge2 = c * std::sqrt(3 * eigenValues(2, i));
+						}
+						else
+						{
+							edge1 = a * std::sqrt(3 * eigenValues(0, i));
+							edge2 = b * std::sqrt(3 * eigenValues(1, i));
+							topEigenVector = c * std::sqrt(3 * eigenValues(2, i));
+						}
 					}
 					else
 					{
-						edge1 = a * std::sqrt(3 * eigenValues(0, i));
-						edge2 = b * std::sqrt(3 * eigenValues(1, i));
-						topEigenVector = c * std::sqrt(3 * eigenValues(2, i));
+						if(std::fabs(b(2)) > std::fabs(c(2)))
+						{
+							edge1 = a * std::sqrt(3 * eigenValues(0, i));
+							topEigenVector = b * std::sqrt(3 * eigenValues(1, i));
+							edge2 = c * std::sqrt(3 * eigenValues(2, i));
+						}
+						else
+						{
+							edge1 = a * std::sqrt(3 * eigenValues(0, i));
+							edge2 = b * std::sqrt(3 * eigenValues(1, i));
+							topEigenVector = c * std::sqrt(3 * eigenValues(2, i));
+						}
 					}
-				}
-				else
-				{
-					if(std::fabs(b(2)) > std::fabs(c(2)))
+					if(topEigenVector(2) < 0)
 					{
-						edge1 = a * std::sqrt(3 * eigenValues(0, i));
-						topEigenVector = b * std::sqrt(3 * eigenValues(1, i));
-						edge2 = c * std::sqrt(3 * eigenValues(2, i));
+						topEigenVector *= -1;
 					}
-					else
-					{
-						edge1 = a * std::sqrt(3 * eigenValues(0, i));
-						edge2 = b * std::sqrt(3 * eigenValues(1, i));
-						topEigenVector = c * std::sqrt(3 * eigenValues(2, i));
-					}
-				}
-				if(topEigenVector(2) < 0)
-				{
-					topEigenVector *= -1;
-				}
-				Eigen::Vector3f center = newMap.features.col(i).topRows(3) + topEigenVector;
+					Eigen::Vector3f center = newMap.features.col(i).topRows(3) + topEigenVector;
 
-				norlab_dense_mapper_ros::Surface surface;
-				surface.center.x = center(0);
-				surface.center.y = center(1);
-				surface.center.z = center(2);
-				surface.edge_1.x = edge1(0);
-				surface.edge_1.y = edge1(1);
-				surface.edge_1.z = edge1(2);
-				surface.edge_2.x = edge2(0);
-				surface.edge_2.y = edge2(1);
-				surface.edge_2.z = edge2(2);
-				surfaceArray.surfaces.emplace_back(surface);
+					norlab_dense_mapper_ros::Surface surface;
+					surface.center.x = center(0);
+					surface.center.y = center(1);
+					surface.center.z = center(2);
+					surface.edge_1.x = edge1(0);
+					surface.edge_1.y = edge1(1);
+					surface.edge_1.z = edge1(2);
+					surface.edge_2.x = edge2(0);
+					surface.edge_2.y = edge2(1);
+					surface.edge_2.z = edge2(2);
+					surfaceArray.surfaces.emplace_back(surface);
+				}
 
 				if (params->isCovarianceMarkersEnabled)
 				{
@@ -379,7 +382,8 @@ void denseMapPublisherLoop()
 				}
 			}
 
-			surfacePublisher.publish(surfaceArray);
+			if(params->isSurfacePublisherEnabled)
+				surfacePublisher.publish(surfaceArray);
 
 			if(params->isCovarianceMarkersEnabled)
 				covarianceMarkersPublisher.publish(markers);
@@ -396,7 +400,7 @@ void generatePointCloud()
     float halfWidth = 1.0;
     float halfLength = 1.5;
     float halfThickness = 0.015;
-    float height = -0.11;
+    float height = -0.12;
 
     PM::Matrix randomFeatures(PM::Matrix::Random(4, numberOfPoints));
     randomFeatures.row(0) *= halfLength;
@@ -430,7 +434,8 @@ int main(int argc, char** argv)
     transformation = PM::get().TransformationRegistrar.create("RigidTransformation");
     denseMapPublisher = n.advertise<sensor_msgs::PointCloud2>("dense_map", 10, true);
 
-	surfacePublisher = n.advertise<norlab_dense_mapper_ros::SurfaceArray>("surfaces", 1, true);
+    if(params->isSurfacePublisherEnabled)
+		surfacePublisher = n.advertise<norlab_dense_mapper_ros::SurfaceArray>("surfaces", 1, true);
 
     if (params->isCovarianceMarkersEnabled)
         covarianceMarkersPublisher =
