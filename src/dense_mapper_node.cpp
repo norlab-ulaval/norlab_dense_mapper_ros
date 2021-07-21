@@ -498,13 +498,15 @@ int main(int argc, char** argv)
             n.subscribe("lslidar_point_cloud_deskewed", messageQueueSize, laserScanCallback);
 
     ros::ServiceServer reloadYamlConfigService =
-        n.advertiseService("reload_yaml_config", reloadYamlConfigCallback);
-    ros::ServiceServer saveMapService = n.advertiseService("save_map", saveMapCallback);
-    ros::ServiceServer loadMapService = n.advertiseService("load_map", loadMapCallback);
+        n.advertiseService("dense_mapper/reload_yaml_config", reloadYamlConfigCallback);
+    ros::ServiceServer saveMapService =
+        n.advertiseService("dense_mapper/save_map", saveMapCallback);
+    ros::ServiceServer loadMapService =
+        n.advertiseService("dense_mapper/load_map", loadMapCallback);
     ros::ServiceServer enableMappingService =
-        n.advertiseService("enable_mapping", enableMappingCallback);
+        n.advertiseService("dense_mapper/enable_mapping", enableMappingCallback);
     ros::ServiceServer disableMappingService =
-        n.advertiseService("disable_mapping", disableMappingCallback);
+        n.advertiseService("dense_mapper/disable_mapping", disableMappingCallback);
 
     generatePointCloud();
 

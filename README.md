@@ -47,8 +47,10 @@ A bridge between norlab_dense_mapper and ROS.
 
 ## Node Services
 
-|        Name        |          Description          | Parameter Name |            Parameter Description             |
-| :----------------: | :---------------------------: | :------------: | :------------------------------------------: |
-|      save_map      |    Saves the current map.     |    filename    |  Path of the file in which the map is save.  |
-|      load_map      |    Loads the current map.     |    filename    | Path of the file in which the map was saved. |
-| reload_yaml_config | Reload all YAML config files. |                |                                              |
+|              Name               |          Description          | Parameter Name |            Parameter Description             |
+| :-----------------------------: | :---------------------------: | :------------: | :------------------------------------------: |
+|      dense_mapper/save_map      |    Saves the current map.     |    filename    |  Path of the file in which the map is save.  |
+|      dense_mapper/load_map      |    Loads the current map.     |    filename    | Path of the file in which the map was saved. |
+|   dense_mapper/enable_mapping   |      Enable the mapping.      |                |                                              |
+|  dense_mapper/disable_mapping   |     Disable the mapping.      |                |                                              |
+| dense_mapper/reload_yaml_config | Reload all YAML config files. |                |                                              |
