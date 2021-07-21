@@ -491,11 +491,9 @@ int main(int argc, char** argv)
     ros::Subscriber sensorsSubscriber;
 
     if (params->is3D)
-        sensorsSubscriber =
-            n.subscribe("lslidar_point_cloud_deskewed", messageQueueSize, pointCloud2Callback);
+        sensorsSubscriber = n.subscribe("points_in", messageQueueSize, pointCloud2Callback);
     else
-        sensorsSubscriber =
-            n.subscribe("lslidar_point_cloud_deskewed", messageQueueSize, laserScanCallback);
+        sensorsSubscriber = n.subscribe("points_in", messageQueueSize, laserScanCallback);
 
     ros::ServiceServer reloadYamlConfigService =
         n.advertiseService("dense_mapper/reload_yaml_config", reloadYamlConfigCallback);

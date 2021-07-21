@@ -10,15 +10,18 @@
 	</group>
 
 	<arg name="is_depth_camera_enabled" default="false"/>
+	<arg name="input_point_cloud_topic" default="dense_mapper_input"/>
 
 	<group if="$(arg is_depth_camera_enabled)">
 		<!-- The realsense publish at a rate of 30 Hz, so this node slows it down to 10 Hz by dropping 2 frame out of 3. -->
-		<node pkg="topic_tools" type="drop" name="realsense_slower_node" args="/realsense/depth/color/points 2 3 /dense_mapper_input" />
+		<node pkg="topic_tools" type="drop" name="realsense_slower_node" args="realsense/depth/color/points 2 3 $(arg input_point_cloud_topic)" />
 	</group>
 
+	<node pkg="topic_tools" type="relay" name="point_cloud_relay" args="lslidar_point_cloud_deskewed $(arg input_point_cloud_topic)" />
 	<node pkg="rviz" type="rviz" name="rviz" args="-d $(find norlab_dense_mapper_ros)/rviz/config.rviz -f map" />
 
 	<node pkg="norlab_dense_mapper_ros" type="dense_mapper_node" name="dense_mapper_node">
+		<remap from="points_in" to="$(arg input_point_cloud_topic)"/>
 		<param name="map_frame" value="map" />
 		<param name="robot_frame" value="base_link" />
 		<param name="depth_camera_frame" value="realsense_depth_optical_frame"/>
