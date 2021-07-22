@@ -1,6 +1,10 @@
-# norlab_icp_mapper_ros
+# norlab_dense_mapper_ros
 
-A bridge between norlab_dense_mapper and ROS.
+A bridge between the [norlab_dense_mapper](https://github.com/norlab-ulaval/norlab_dense_mapper) library and ROS.
+
+## Prerequisites
+
+In order to use this package, you need to follow the installation instructions of the [norlab_dense_mapper](https://github.com/norlab-ulaval/norlab_dense_mapper) library and its dependencies.
 
 ## Node Parameters
 
@@ -34,23 +38,25 @@ A bridge between norlab_dense_mapper and ROS.
 |     is_depth_camera_enabled     |                        true when a depth camera is used, false otherwise.                         |     {true, false}     |      false      |
 |            is_online            |                       true when online mapping is wanted, false otherwise.                        |     {true, false}     |      true       |
 |           is_mapping            |             true when map updates are wanted, false when only localization is wanted.             |     {true, false}     |      true       |
-|  is_covariance_markers_enabled  |                true when the points covariance markers is wanted, false otherwise.                |     {true, false}     |      false      |
+|  is_covariance_markers_enabled  |                   true when the covariance markers is wanted, false otherwise.                    |     {true, false}     |      false      |
+|  is_surface_publisher_enabled   |                    true when the surface publisher is wanted, false otherwise.                    |     {true, false}     |      false      |
 |      compute_prob_dynamic       |     true when computation of probability of points being dynamic is wanted, false otherwise.      |     {true, false}     |      false      |
 |  save_map_cells_on_hard_drive   | true when map cell storage on hard drive is wanted, false when map cell storage in RAM is wanted. |     {true, false}     |      false      |
 
 ## Node Topics
 
-|             Name             |                   Description                    |
-| :--------------------------: | :----------------------------------------------: |
-| lslidar_point_cloud_deskewed | Topic from which the input points are retrieved. |
-|          dense_map           |    Topic in which the dense map is published.    |
+|   Name    |                   Description                    |                Topic message type                |
+| :-------: | :----------------------------------------------: | :----------------------------------------------: |
+| points_in | Topic from which the input points are retrieved. | sensor_msgs/LaserScan or sensor_msgs/PointCloud2 |
+|   odom    |   Topic from which the odometry is retrieved.    |                nav_msgs/Odometry                 |
+| dense_map |    Topic in which the dense map is published.    |             sensor_msgs/PointCloud2              |
 
 ## Node Services
 
-|              Name               |          Description          | Parameter Name |            Parameter Description             |
-| :-----------------------------: | :---------------------------: | :------------: | :------------------------------------------: |
-|      dense_mapper/save_map      |    Saves the current map.     |    filename    |  Path of the file in which the map is save.  |
-|      dense_mapper/load_map      |    Loads the current map.     |    filename    | Path of the file in which the map was saved. |
-|   dense_mapper/enable_mapping   |      Enable the mapping.      |                |                                              |
-|  dense_mapper/disable_mapping   |     Disable the mapping.      |                |                                              |
-| dense_mapper/reload_yaml_config | Reload all YAML config files. |                |                                              |
+|              Name               |          Description          | Parameters Name |            Parameters Description            |
+| :-----------------------------: | :---------------------------: | :-------------: | :------------------------------------------: |
+|      dense_mapper/save_map      |    Saves the current map.     |    filename     |  Path of the file in which the map is save.  |
+|      dense_mapper/load_map      |    Loads the current map.     |    filename     | Path of the file in which the map was saved. |
+|   dense_mapper/enable_mapping   |      Enable the mapping.      |                 |                                              |
+|  dense_mapper/disable_mapping   |     Disable the mapping.      |                 |                                              |
+| dense_mapper/reload_yaml_config | Reload all YAML config files. |                 |                                              |
