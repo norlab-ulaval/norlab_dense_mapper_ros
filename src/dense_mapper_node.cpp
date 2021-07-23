@@ -396,7 +396,7 @@ void generatePointCloud()
     float halfWidth = 1.0;
     float halfLength = 1.5;
     float halfThickness = 0.015;
-    float height = -0.12;
+    float height = -0.131;
 
     PM::Matrix randomFeatures(PM::Matrix::Random(4, numberOfPoints));
     randomFeatures.row(0) *= halfLength;

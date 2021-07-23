@@ -4,8 +4,8 @@
       xMax: 0.48
       yMin: -0.32
       yMax: 0.32
-      zMin: -0.1
-      zMax: 0.5
+      zMin: 0.0
+      zMax: 0.75
       removeInside: 1
 # Husky dimensions
 # - BoundingBoxDataPointsFilter:
