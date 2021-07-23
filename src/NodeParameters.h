@@ -15,6 +15,7 @@ class NodeParameters
   public:
     std::string mapFrame;
     std::string robotFrame;
+    std::string robotStabilizedFrame;
     std::string depthCameraFrame;
     std::string initialMapFileName;
     std::string finalMapFileName;

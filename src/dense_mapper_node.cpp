@@ -33,7 +33,6 @@ std::chrono::time_point<std::chrono::steady_clock> lastTimeInputWasProcessed;
 std::mutex idleTimeLock;
 std::mutex icpOdomLock;
 std::list<nav_msgs::Odometry> icpOdoms;
-std::string baselinkStabilizedPostfix = "_stabilized";
 
 void saveMap(const std::string& mapFileName)
 {
@@ -159,11 +158,8 @@ void gotInput(const PM::DataPoints& input,
     PM::TransformationParameters sensorToRobot =
         findTransform(sensorFrame, params->robotFrame, timeStamp, input.getHomogeneousDim());
 
-    PM::TransformationParameters robotToRobotStabilized =
-        findTransform(params->robotFrame,
-                      params->robotFrame + baselinkStabilizedPostfix,
-                      timeStamp,
-                      input.getHomogeneousDim());
+    PM::TransformationParameters robotToRobotStabilized = findTransform(
+        params->robotFrame, params->robotStabilizedFrame, timeStamp, input.getHomogeneousDim());
 
     PM::TransformationParameters robotToMap =
         getRobotToMapTransform(timeStamp, input.getHomogeneousDim());
@@ -415,7 +411,7 @@ void generatePointCloud()
     featuresLabels.emplace_back("pad", 1);
     PM::DataPoints pointCloud(randomFeatures, featuresLabels);
 
-    denseMapper->processInput(params->robotFrame + baselinkStabilizedPostfix,
+    denseMapper->processInput(params->robotStabilizedFrame,
                               pointCloud,
                               PM::Matrix::Identity(4, 4),
                               PM::Matrix::Identity(4, 4),

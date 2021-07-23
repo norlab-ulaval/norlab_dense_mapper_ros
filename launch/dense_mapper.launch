@@ -24,6 +24,7 @@
 		<remap from="points_in" to="$(arg input_point_cloud_topic)"/>
 		<param name="map_frame" value="map" />
 		<param name="robot_frame" value="base_link" />
+		<param name="robot_stabilized_frame" value="base_link_stabilized" />
 		<param name="depth_camera_frame" value="realsense_depth_optical_frame"/>
 		<param name="initial_map_file_name" value="" />
 		<param name="final_map_file_name" value="dense_map.vtk" />
