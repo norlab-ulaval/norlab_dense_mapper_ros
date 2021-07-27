@@ -1,10 +1,11 @@
 <launch>
-	<param name="/use_sim_time" value="true"/>
+	<!-- <param name="/use_sim_time" value="true"/> -->
 	<arg name="bagfile" default=""/>
 	<arg name="rate" default="1"/>
 	<arg name="start" default="0"/>
 
 	<node pkg="norlab_dense_mapper_ros" type="dense_mapper_node" name="dense_mapper_node">
+		<remap from="lslidar_point_cloud_deskewed" to="dense_mapper_input_cloud"/>
 		<param name="map_frame" value="map" />
 		<param name="robot_frame" value="base_link" />
 		<param name="depth_camera_frame" value="realsense_depth_optical_frame"/>
@@ -17,13 +18,13 @@
 		<param name="map_post_filters_config" value="$(find norlab_dense_mapper_ros)/params/map_post_filters_config.yaml" />
 		<param name="map_update_condition" value="delay" />
 		<param name="map_update_delay" value="0" />
-		<param name="map_update_distance" value="0.5" />
+		<param name="map_update_distance" value="0.8" />
 		<param name="map_publish_rate" value="10" />
 		<param name="max_idle_time" value="10" />
 		<param name="min_dist_new_point" value="0.03" />
-		<param name="sensor_max_range" value="5" />
+		<param name="sensor_max_range" value="10" />
 		<param name="prior_dynamic" value="0.6" />
-		<param name="threshold_dynamic" value="0.9" />
+		<param name="threshold_dynamic" value="0.75" />
 		<param name="beam_half_angle" value="0.017453292" />
 		<param name="epsilon_a" value="0.01" />
 		<param name="epsilon_d" value="0.01" />
@@ -33,14 +34,17 @@
 		<param name="is_depth_camera_enabled" value="true" />
 		<param name="is_online" value="true" />
 		<param name="is_mapping" value="true" />
-		<param name="is_markers_enabled" value="true" />
+		<param name="is_markers_enabled" value="false" />
 		<param name="compute_prob_dynamic" value="true" />
 	</node>
 
-	<node pkg="rviz" type="rviz" name="rviz" args="-d $(find norlab_dense_mapper_ros)/rviz/config.rviz"/>
+	<!-- <node pkg="rviz" type="rviz" name="rviz" args="-d $(find norlab_dense_mapper_ros)/rviz/config.rviz"/> -->
+	<?ignore
 	<node pkg="rosbag" type="play" name="play" output="screen" args="$(arg bagfile) --clock -r $(arg rate) -s $(arg start)"/>
+	?>
 
 	<!-- The realsense publish at a rate of 30 Hz, so this node slows it down to 10 Hz by dropping 2 frame out of 3. -->
-	<node pkg="topic_tools" type="drop" name="realsense_slower_node" args="/realsense/depth/color/points 2 3 /lslidar_point_cloud_deskewed" />
+	<node pkg="topic_tools" type="relay" name="ls_lidar_relay" args="/lslidar_point_cloud_deskewed /dense_mapper_input_cloud" />
+	<node pkg="topic_tools" type="drop" name="realsense_slower_node" args="/realsense/depth/color/points 2 3 /dense_mapper_input_cloud" />
 
 </launch>

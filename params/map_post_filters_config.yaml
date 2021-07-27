@@ -1,9 +1,9 @@
 - DistanceLimitDataPointsFilter:
-      dist: 5
+      dist: 8 #was 5
       removeInside: 0
 
 - MaxPointCountDataPointsFilter:
-      maxCount: 50000
+      maxCount: 25000
 
 - SurfaceNormalDataPointsFilter:
       knn: 15
@@ -15,4 +15,4 @@
 - CutAtDescriptorThresholdDataPointsFilter:
       descName: probabilityDynamic
       useLargerThan: 1
-      threshold: 0.8
+      threshold: 0.75

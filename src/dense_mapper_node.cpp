@@ -380,7 +380,7 @@ int main(int argc, char** argv)
     if (params->isOnline)
     {
         tfBuffer = std::unique_ptr<tf2_ros::Buffer>(new tf2_ros::Buffer);
-        messageQueueSize = 1;
+        messageQueueSize = 10;
     }
     else
     {
@@ -403,8 +403,8 @@ int main(int argc, char** argv)
 
     ros::ServiceServer reloadYamlConfigService =
         n.advertiseService("reload_yaml_config", reloadYamlConfigCallback);
-    ros::ServiceServer saveMapService = n.advertiseService("save_map", saveMapCallback);
-    ros::ServiceServer loadMapService = n.advertiseService("load_map", loadMapCallback);
+    ros::ServiceServer saveMapService = n.advertiseService("save_dense_map", saveMapCallback);
+    ros::ServiceServer loadMapService = n.advertiseService("load_dense_map", loadMapCallback);
     ros::ServiceServer enableMappingService =
         n.advertiseService("enable_mapping", enableMappingCallback);
     ros::ServiceServer disableMappingService =
