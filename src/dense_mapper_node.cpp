@@ -350,8 +350,7 @@ void denseMapPublisherLoop()
 
                     if (R.determinant() < 0)
                     {
-                        R.col(0).swap(R.col(1));
-                        eigenValues.row(0).swap(eigenValues.row(1));
+                        R.col(0) *= -1;
                     }
 
                     Eigen::Quaternionf q(R);
