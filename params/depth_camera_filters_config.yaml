@@ -1,4 +1,6 @@
-- MaxPointCountDataPointsFilter:
-      maxCount: 100
+- DistanceLimitDataPointsFilter:
+      dist: 3
+      removeInside: 0
 
-- ObservationDirectionDataPointsFilter
+- MaxPointCountDataPointsFilter:
+      maxCount: 500
