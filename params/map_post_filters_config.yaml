@@ -5,7 +5,7 @@
 - CompressionDataPointsFilter:
       knn: 10
       maxDist: 0.3
-      maxDeviation: 0.1
+      maxDeviation: 10
       epsilon: 0
       maxIterationCount: 1
       maxVolumeRatio: inf
