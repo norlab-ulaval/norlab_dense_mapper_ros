@@ -6,6 +6,7 @@
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/Quaternion.h>
 #include <geometry_msgs/Vector3.h>
+#include <list>
 #include <memory>
 #include <mutex>
 #include <pointmatcher_ros/PointMatcher_ROS.h>
@@ -32,6 +33,7 @@ std::chrono::time_point<std::chrono::steady_clock> lastTimeInputWasProcessed;
 std::mutex idleTimeLock;
 std::mutex icpOdomLock;
 std::list<nav_msgs::Odometry> icpOdoms;
+std::size_t lastMarkersSize;
 
 void saveMap(const std::string& mapFileName)
 {
@@ -92,7 +94,8 @@ PM::TransformationParameters findTransform(const std::string& sourceFrame,
         ROS_WARN("%s", ex.what());
     }
 
-    return PointMatcher_ROS::rosTfToPointMatcherTransformation<float>(tf, transformDimension);
+    return PointMatcher_ROS::rosTfToPointMatcherTransformation<PM::ScalarType>(tf,
+                                                                               transformDimension);
 }
 
 PM::TransformationParameters getRobotToMapTransform(const ros::Time& timeStamp,
@@ -147,7 +150,8 @@ PM::TransformationParameters getRobotToMapTransform(const ros::Time& timeStamp,
     tf.transform.translation = position;
     tf.transform.rotation = orientation;
 
-    return PointMatcher_ROS::rosTfToPointMatcherTransformation<float>(tf, transformDimension);
+    return PointMatcher_ROS::rosTfToPointMatcherTransformation<PM::ScalarType>(tf,
+                                                                               transformDimension);
 }
 
 void gotInput(const PM::DataPoints& input,
@@ -181,14 +185,14 @@ void gotInput(const PM::DataPoints& input,
 
 void pointCloud2Callback(const sensor_msgs::PointCloud2& cloudMsgIn)
 {
-    gotInput(PointMatcher_ROS::rosMsgToPointMatcherCloud<float>(cloudMsgIn),
+    gotInput(PointMatcher_ROS::rosMsgToPointMatcherCloud<PM::ScalarType>(cloudMsgIn),
              cloudMsgIn.header.frame_id,
              cloudMsgIn.header.stamp);
 }
 
 void laserScanCallback(const sensor_msgs::LaserScan& scanMsgIn)
 {
-    gotInput(PointMatcher_ROS::rosMsgToPointMatcherCloud<float>(scanMsgIn),
+    gotInput(PointMatcher_ROS::rosMsgToPointMatcherCloud<PM::ScalarType>(scanMsgIn),
              scanMsgIn.header.frame_id,
              scanMsgIn.header.stamp);
 }
@@ -267,121 +271,174 @@ void denseMapPublisherLoop()
     {
         if (denseMapper->getNewLocalMap(newMap))
         {
-            sensor_msgs::PointCloud2 dense_map = PointMatcher_ROS::pointMatcherCloudToRosMsg<float>(
-                newMap, params->mapFrame, ros::Time::now());
+            // auto uncompressionFilter = PM::get().DataPointsFilterRegistrar.create(
+            // "UncompressionDataPointsFilter", { { "maxDensity", "10000" } });
+            // auto uncompressedMap = uncompressionFilter->filter(newMap);
 
-            PM::Matrix eigenValues =
-                newMap.getDescriptorCopyByName("eigValues").unaryExpr([](float element) {
-                    return element < 1e-6 ? 0.001f : element;
-                });
-            PM::Matrix eigenVectors = newMap.getDescriptorCopyByName("eigVectors");
-            PM::Matrix nbPoints = newMap.getDescriptorCopyByName("nbPoints");
+            sensor_msgs::PointCloud2 dense_map =
+                PointMatcher_ROS::pointMatcherCloudToRosMsg<PM::ScalarType>(
+                    newMap, params->mapFrame, ros::Time::now());
 
-            norlab_dense_mapper_ros::SurfaceArray surfaceArray;
-            visualization_msgs::MarkerArray markers;
-            for (size_t i = 0; i < newMap.getNbPoints(); ++i)
+            if (params->isCovarianceMarkersEnabled || params->isSurfacePublisherEnabled)
             {
-                const auto& a = eigenVectors.block<3, 1>(0, i);
-                const auto& b = eigenVectors.block<3, 1>(3, i);
-                const auto& c = eigenVectors.block<3, 1>(6, i);
+                const PM::Matrix& eigenValues = newMap.getDescriptorViewByName("eigValues")
+                                                    .cwiseAbs()
+                                                    .unaryExpr([](PM::ScalarType element) {
+                                                        return element < 1e-6f ? 1e-6f : element;
+                                                    });
+                const PM::Matrix& eigenVectors = newMap.getDescriptorViewByName("eigVectors");
+                const PM::Matrix& nbPoints = newMap.getDescriptorViewByName("nbPoints");
 
-                if (params->isSurfacePublisherEnabled)
+                visualization_msgs::MarkerArray markers;
+                norlab_dense_mapper_ros::SurfaceArray surfaceArray;
+
+                for (unsigned i = 0; i < newMap.getNbPoints(); ++i)
                 {
-                    // only one surface per prism (the top one)
-                    Eigen::Vector3f topEigenVector, edge1, edge2;
-                    if (std::fabs(a(2)) > std::fabs(b(2)))
-                    {
-                        if (std::fabs(a(2)) > std::fabs(c(2)))
-                        {
-                            topEigenVector = a * std::sqrt(3 * eigenValues(0, i));
-                            edge1 = b * std::sqrt(3 * eigenValues(1, i));
-                            edge2 = c * std::sqrt(3 * eigenValues(2, i));
-                        }
-                        else
-                        {
-                            edge1 = a * std::sqrt(3 * eigenValues(0, i));
-                            edge2 = b * std::sqrt(3 * eigenValues(1, i));
-                            topEigenVector = c * std::sqrt(3 * eigenValues(2, i));
-                        }
-                    }
-                    else
-                    {
-                        if (std::fabs(b(2)) > std::fabs(c(2)))
-                        {
-                            edge1 = a * std::sqrt(3 * eigenValues(0, i));
-                            topEigenVector = b * std::sqrt(3 * eigenValues(1, i));
-                            edge2 = c * std::sqrt(3 * eigenValues(2, i));
-                        }
-                        else
-                        {
-                            edge1 = a * std::sqrt(3 * eigenValues(0, i));
-                            edge2 = b * std::sqrt(3 * eigenValues(1, i));
-                            topEigenVector = c * std::sqrt(3 * eigenValues(2, i));
-                        }
-                    }
-                    if (topEigenVector(2) < 0)
-                    {
-                        topEigenVector *= -1;
-                    }
-                    Eigen::Vector3f center = newMap.features.col(i).topRows(3) + topEigenVector;
+                    const PM::Vector& a = eigenVectors.block(0, i, 3, 1);
+                    const PM::Vector& b = eigenVectors.block(3, i, 3, 1);
+                    const PM::Vector& c = eigenVectors.block(6, i, 3, 1);
 
-                    norlab_dense_mapper_ros::Surface surface;
-                    surface.center.x = center(0);
-                    surface.center.y = center(1);
-                    surface.center.z = center(2);
-                    surface.edge_1.x = edge1(0);
-                    surface.edge_1.y = edge1(1);
-                    surface.edge_1.z = edge1(2);
-                    surface.edge_2.x = edge2(0);
-                    surface.edge_2.y = edge2(1);
-                    surface.edge_2.z = edge2(2);
-                    surfaceArray.surfaces.emplace_back(surface);
+                    if (params->isSurfacePublisherEnabled)
+                    {
+                        // only one surface per prism (the top one)
+                        PM::Vector topEigenVector, edge1, edge2;
+
+                        if (std::fabs(a(2)) > std::fabs(b(2)))
+                        {
+                            if (std::fabs(a(2)) > std::fabs(c(2)))
+                            {
+                                topEigenVector = a * std::sqrt(3 * eigenValues(0, i));
+                                edge1 = b * std::sqrt(3 * eigenValues(1, i));
+                                edge2 = c * std::sqrt(3 * eigenValues(2, i));
+                            }
+                            else
+                            {
+                                edge1 = a * std::sqrt(3 * eigenValues(0, i));
+                                edge2 = b * std::sqrt(3 * eigenValues(1, i));
+                                topEigenVector = c * std::sqrt(3 * eigenValues(2, i));
+                            }
+                        }
+                        else
+                        {
+                            if (std::fabs(b(2)) > std::fabs(c(2)))
+                            {
+                                edge1 = a * std::sqrt(3 * eigenValues(0, i));
+                                topEigenVector = b * std::sqrt(3 * eigenValues(1, i));
+                                edge2 = c * std::sqrt(3 * eigenValues(2, i));
+                            }
+                            else
+                            {
+                                edge1 = a * std::sqrt(3 * eigenValues(0, i));
+                                edge2 = b * std::sqrt(3 * eigenValues(1, i));
+                                topEigenVector = c * std::sqrt(3 * eigenValues(2, i));
+                            }
+                        }
+
+                        if (topEigenVector(2) < 0)
+                            topEigenVector *= -1;
+
+                        PM::Vector center = newMap.features.col(i).topRows(3) + topEigenVector;
+
+                        norlab_dense_mapper_ros::Surface surface;
+                        surface.center.x = center(0);
+                        surface.center.y = center(1);
+                        surface.center.z = center(2);
+                        surface.edge_1.x = edge1(0);
+                        surface.edge_1.y = edge1(1);
+                        surface.edge_1.z = edge1(2);
+                        surface.edge_2.x = edge2(0);
+                        surface.edge_2.y = edge2(1);
+                        surface.edge_2.z = edge2(2);
+                        surfaceArray.surfaces.emplace_back(surface);
+                    }
+
+                    if (params->isCovarianceMarkersEnabled)
+                    {
+                        Eigen::Matrix<PM::ScalarType, 3, 3> R;
+                        R << a, b, c;
+
+                        if (R.determinant() < 0)
+                            R.col(0) *= -1;
+
+                        PM::Quaternion q(R);
+                        q.normalize();
+
+                        {
+                            visualization_msgs::Marker marker;
+                            marker.header.frame_id = params->mapFrame;
+                            marker.header.stamp = dense_map.header.stamp;
+                            marker.ns = "covariances";
+                            marker.id = i;
+                            marker.type = visualization_msgs::Marker::CUBE;
+                            marker.action = visualization_msgs::Marker::ADD;
+                            marker.pose.position.x = newMap.features(0, i);
+                            marker.pose.position.y = newMap.features(1, i);
+                            marker.pose.position.z = newMap.features(2, i);
+                            marker.pose.orientation.x = q.x();
+                            marker.pose.orientation.y = q.y();
+                            marker.pose.orientation.z = q.z();
+                            marker.pose.orientation.w = q.w();
+                            marker.scale.x = 2 * std::sqrt(3 * eigenValues(0, i));
+                            marker.scale.y = 2 * std::sqrt(3 * eigenValues(1, i));
+                            marker.scale.z = 2 * std::sqrt(3 * eigenValues(2, i));
+                            marker.color.r = (float)std::min(nbPoints(0, i) / 500.0, 1.0);
+                            marker.color.g = 0.0f;
+                            marker.color.b = 1.0f - (float)std::min(nbPoints(0, i) / 500.0, 1.0);
+                            marker.color.a = 0.75f;
+                            marker.lifetime = ros::Duration(2);
+                            markers.markers.emplace_back(marker);
+                        }
+
+                        {
+                            visualization_msgs::Marker marker;
+                            marker.header.frame_id = params->mapFrame;
+                            marker.header.stamp = dense_map.header.stamp;
+                            marker.ns = "nbPoints";
+                            marker.id = i;
+                            marker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+                            marker.action = visualization_msgs::Marker::ADD;
+                            marker.pose.position.x = newMap.features(0, i);
+                            marker.pose.position.y = newMap.features(1, i);
+                            marker.pose.position.z = newMap.features(2, i);
+                            marker.pose.orientation.w = 1.0;
+                            marker.scale.z = 0.05;
+                            marker.color.r = 1.;
+                            marker.color.g = 1.;
+                            marker.color.b = 1.;
+                            marker.color.a = 1.;
+                            marker.text = std::to_string(static_cast<unsigned>(nbPoints(0, i)));
+                            marker.lifetime = ros::Duration(2);
+                            markers.markers.emplace_back(marker);
+                        }
+                    }
                 }
 
                 if (params->isCovarianceMarkersEnabled)
                 {
-                    Eigen::Matrix3f R;
-                    R << a, b, c;
+                    std::size_t currentMarkersSize = markers.markers.size();
 
-                    if (R.determinant() < 0)
+                    for (std::size_t i = currentMarkersSize; i < lastMarkersSize; ++i)
                     {
-                        R.col(0) *= -1;
+                        // Remove excess markers
+                        visualization_msgs::Marker marker;
+                        marker.header.frame_id = params->mapFrame;
+                        marker.id = i;
+                        marker.action = visualization_msgs::Marker::DELETE;
+                        marker.ns = "covariances";
+                        markers.markers.emplace_back(marker);
+                        marker.ns = "nbPoints";
+                        markers.markers.emplace_back(marker);
                     }
 
-                    Eigen::Quaternionf q(R);
-                    q.normalize();
-
-                    visualization_msgs::Marker marker;
-                    marker.header.frame_id = params->mapFrame;
-                    marker.header.stamp = dense_map.header.stamp;
-                    marker.ns = "covariances";
-                    marker.id = i;
-                    marker.type = visualization_msgs::Marker::CUBE;
-                    marker.action = visualization_msgs::Marker::ADD;
-                    marker.pose.position.x = newMap.features(0, i);
-                    marker.pose.position.y = newMap.features(1, i);
-                    marker.pose.position.z = newMap.features(2, i);
-                    marker.pose.orientation.x = q.x();
-                    marker.pose.orientation.y = q.y();
-                    marker.pose.orientation.z = q.z();
-                    marker.pose.orientation.w = q.w();
-                    marker.scale.x = 2 * std::sqrt(3 * eigenValues(0, i));
-                    marker.scale.y = 2 * std::sqrt(3 * eigenValues(1, i));
-                    marker.scale.z = 2 * std::sqrt(3 * eigenValues(2, i));
-                    marker.color.r = (float)std::min(nbPoints(0, i) / 500.0, 1.0);
-                    marker.color.g = 0.0f;
-                    marker.color.b = 1.0f - (float)std::min(nbPoints(0, i) / 500.0, 1.0);
-                    marker.color.a = 0.75f;
-                    markers.markers.emplace_back(marker);
+                    lastMarkersSize = currentMarkersSize;
                 }
+
+                if (params->isSurfacePublisherEnabled)
+                    surfacePublisher.publish(surfaceArray);
+
+                if (params->isCovarianceMarkersEnabled)
+                    covarianceMarkersPublisher.publish(markers);
             }
-
-            if (params->isSurfacePublisherEnabled)
-                surfacePublisher.publish(surfaceArray);
-
-            if (params->isCovarianceMarkersEnabled)
-                covarianceMarkersPublisher.publish(markers);
-
             denseMapPublisher.publish(dense_map);
         }
         publishRate.sleep();
@@ -427,6 +484,7 @@ int main(int argc, char** argv)
     params = std::unique_ptr<NodeParameters>(new NodeParameters(pn));
     transformation = PM::get().TransformationRegistrar.create("RigidTransformation");
     denseMapPublisher = n.advertise<sensor_msgs::PointCloud2>("dense_map", 10, true);
+    lastMarkersSize = 0;
 
     if (params->isSurfacePublisherEnabled)
         surfacePublisher = n.advertise<norlab_dense_mapper_ros::SurfaceArray>("surfaces", 1, true);
@@ -465,19 +523,19 @@ int main(int argc, char** argv)
         loadMap(params->initialMapFileName);
 
     std::thread mapperShutdownThread;
-    int messageQueueSize;
+    int subscriberQueueSize;
 
     if (params->isOnline)
     {
         tfBuffer = std::unique_ptr<tf2_ros::Buffer>(new tf2_ros::Buffer);
-        messageQueueSize = 10;
+        subscriberQueueSize = 10;
     }
     else
     {
         mapperShutdownThread = std::thread(mapperShutdownLoop);
         tfBuffer =
             std::unique_ptr<tf2_ros::Buffer>(new tf2_ros::Buffer(ros::Duration(ros::DURATION_MAX)));
-        messageQueueSize = 0;
+        subscriberQueueSize = 0;
     }
 
     tf2_ros::TransformListener tfListener(*tfBuffer);
@@ -485,9 +543,9 @@ int main(int argc, char** argv)
     ros::Subscriber sensorsSubscriber;
 
     if (params->is3D)
-        sensorsSubscriber = n.subscribe("points_in", messageQueueSize, pointCloud2Callback);
+        sensorsSubscriber = n.subscribe("points_in", subscriberQueueSize, pointCloud2Callback);
     else
-        sensorsSubscriber = n.subscribe("points_in", messageQueueSize, laserScanCallback);
+        sensorsSubscriber = n.subscribe("points_in", subscriberQueueSize, laserScanCallback);
 
     ros::ServiceServer reloadYamlConfigService =
         n.advertiseService("dense_mapper/reload_yaml_config", reloadYamlConfigCallback);
