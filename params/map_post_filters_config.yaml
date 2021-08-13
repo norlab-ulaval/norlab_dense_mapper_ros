@@ -1,12 +1,15 @@
 - DistanceLimitDataPointsFilter:
-      dist: 5
+      dist: 20
       removeInside: 0
 
-- MaxPointCountDataPointsFilter:
-      maxCount: 50000
-
-- SurfaceNormalDataPointsFilter:
-      knn: 15
+- CompressionDataPointsFilter:
+      knn: 10
+      maxDist: 0.3
+      maxDeviation: 0.1
+      epsilon: 0
+      maxIterationCount: 1
+      maxVolumeRatio: inf
+      keepNormals: 1
       keepEigenValues: 1
       keepEigenVectors: 1
 
