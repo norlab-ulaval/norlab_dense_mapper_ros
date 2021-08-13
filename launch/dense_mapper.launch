@@ -39,7 +39,7 @@
 		<param name="map_publish_rate" value="10" />
 		<param name="max_idle_time" value="10" />
 		<param name="min_dist_new_point" value="0.03" />
-		<param name="sensor_max_range" value="5" />
+		<param name="sensor_max_range" value="20" />
 		<param name="prior_dynamic" value="0.6" />
 		<param name="threshold_dynamic" value="0.9" />
 		<param name="beam_half_angle" value="0.017453292" />
