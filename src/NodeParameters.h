@@ -45,6 +45,7 @@ class NodeParameters
     bool isCovarianceMarkersEnabled;
     bool isSurfacePublisherEnabled;
     bool computeProbDynamic;
+    bool generateInitialPointCloud;
     bool saveMapCellsOnHardDrive;
 
     NodeParameters(ros::NodeHandle privateNodeHandle);

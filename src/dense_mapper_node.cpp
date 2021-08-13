@@ -388,11 +388,11 @@ void denseMapPublisherLoop()
     }
 }
 
-void generatePointCloud()
+void generateInitialPointCloud()
 {
-    unsigned int numberOfPoints = 10000;
-    float halfWidth = 1.0;
-    float halfLength = 1.5;
+    unsigned numberOfPoints = 10000;
+    float halfWidth = 0.75;
+    float halfLength = 0.75;
     float halfThickness = 0.015;
     float height = -0.131;
 
@@ -500,11 +500,14 @@ int main(int argc, char** argv)
     ros::ServiceServer disableMappingService =
         n.advertiseService("dense_mapper/disable_mapping", disableMappingCallback);
 
-    generatePointCloud();
+    if (params->generateInitialPointCloud)
+        generateInitialPointCloud();
 
     std::thread denseMapPublisherThread = std::thread(denseMapPublisherLoop);
+
     ros::MultiThreadedSpinner spinner;
     spinner.spin();
+
     denseMapPublisherThread.join();
 
     if (!params->isOnline)
