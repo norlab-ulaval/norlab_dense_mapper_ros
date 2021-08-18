@@ -6,12 +6,13 @@
       knn: 10
       maxDist: 0.3
       maxDeviation: 10
-      epsilon: 0
-      maxIterationCount: 1
-      maxVolumeRatio: inf
+      maxVolumeRatio: 2.0
+      maxIterationCount: 1000
+      initialVariance: 9e-4
       keepNormals: 1
       keepEigenValues: 1
       keepEigenVectors: 1
+      sortEigen: 0
 
 - OrientNormalsDataPointsFilter
 

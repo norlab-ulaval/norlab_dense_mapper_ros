@@ -271,10 +271,6 @@ void denseMapPublisherLoop()
     {
         if (denseMapper->getNewLocalMap(newMap))
         {
-            // auto uncompressionFilter = PM::get().DataPointsFilterRegistrar.create(
-            // "UncompressionDataPointsFilter", { { "maxDensity", "10000" } });
-            // auto uncompressedMap = uncompressionFilter->filter(newMap);
-
             sensor_msgs::PointCloud2 dense_map =
                 PointMatcher_ROS::pointMatcherCloudToRosMsg<PM::ScalarType>(
                     newMap, params->mapFrame, ros::Time::now());

@@ -9,12 +9,12 @@
 		<node pkg="rosbag" type="play" name="rosbag_player" output="screen" args="$(arg bagfile_path) --clock -r $(arg rate) -s $(arg start)" />
 	</group>
 
-	<arg name="is_depth_camera_enabled" default="false"/>
+	<arg name="is_depth_camera_enabled" default="true"/>
 	<arg name="input_point_cloud_topic" default="dense_mapper_input"/>
 
 	<group if="$(arg is_depth_camera_enabled)">
-		<!-- The realsense publish at a rate of 30 Hz, so this node slows it down to 10 Hz by dropping 2 frame out of 3. -->
-		<node pkg="topic_tools" type="drop" name="realsense_slower_node" args="realsense/depth/color/points 2 3 $(arg input_point_cloud_topic)" />
+		<!-- The realsense publish at a rate of 30 Hz, so this node slows it down to 5 Hz by dropping 5 frame out of 6. -->
+		<node pkg="topic_tools" type="drop" name="realsense_slower_node" args="realsense/depth/color/points 5 6 $(arg input_point_cloud_topic)" />
 	</group>
 
 	<node pkg="topic_tools" type="relay" name="point_cloud_relay" args="lslidar_point_cloud_deskewed $(arg input_point_cloud_topic)" />
@@ -51,9 +51,9 @@
 		<param name="is_depth_camera_enabled" value="$(arg is_depth_camera_enabled)" />
 		<param name="is_online" value="true" />
 		<param name="is_mapping" value="true" />
-		<param name="is_covariance_markers_enabled" value="false" />
-		<param name="is_surface_publisher_enabled" value="false" />
-		<param name="generate_initial_point_cloud" value="false" />
+		<param name="is_covariance_markers_enabled" value="true" />
+		<param name="is_surface_publisher_enabled" value="true" />
+		<param name="generate_initial_point_cloud" value="true" />
 		<param name="compute_prob_dynamic" value="true" />
 	</node>
 </launch>
